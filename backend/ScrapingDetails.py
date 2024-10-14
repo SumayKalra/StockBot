@@ -90,6 +90,7 @@ def specifc_stock(stock_code):
             value = cells[4].text.strip() if len(cells) > 4 else "N/A"
 
             # Append the row data as a dictionary
+            print(date)
             table_data.append({
                 "Date": date,
                 "Price": price,
