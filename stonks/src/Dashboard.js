@@ -1,7 +1,10 @@
+// Dashboard.js
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Dashboard = ({ token }) => {
+  // State variables
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
   const [stockList, setStockList] = useState([]);
@@ -9,39 +12,26 @@ const Dashboard = ({ token }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Fetch user's stock list on component mount
   useEffect(() => {
-    // Fetch user's stock list on component mount
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-    };
-
+    const headers = { 'Authorization': `Bearer ${token}` };
     axios.get('http://localhost:8000/stocks', { headers })
-      .then(response => {
-        setStockList(response.data.stocks);
-      })
-      .catch(error => {
-        console.error('Error fetching stock list:', error);
-      });
+      .then(response => setStockList(response.data.stocks))
+      .catch(error => console.error('Error fetching stock list:', error));
   }, [token]);
 
   const displayStockData = () => {
+    // Display stock analysis data
     setLoading(true);
     setError('');
     setShowData(false);
 
-    const headers = {
-      'Authorization': `Bearer ${token}`,
-    };
-
-    // First, execute the analysis
+    const headers = { 'Authorization': `Bearer ${token}` };
     axios.post('http://localhost:8000/execute_analysis', {}, { headers })
-      .then(() => {
-        // Then, fetch the data
-        return Promise.all([
-          axios.get('http://localhost:8000/data/Stock Analysis', { headers }),
-          axios.get('http://localhost:8000/data/American Bull Info', { headers }),
-        ]);
-      })
+      .then(() => Promise.all([
+        axios.get('http://localhost:8000/data/Stock Analysis', { headers }),
+        axios.get('http://localhost:8000/data/American Bull Info', { headers }),
+      ]))
       .then(([stockAnalysisRes, americanBullRes]) => {
         setStockAnalysisData(stockAnalysisRes.data.data);
         setAmericanBullData(americanBullRes.data.data);
@@ -60,6 +50,7 @@ const Dashboard = ({ token }) => {
     <div>
       <h1>Dashboard</h1>
 
+      {/* Stock List Section */}
       <h2>Your Stock List</h2>
       <ul>
         {stockList.map((stock, index) => (
@@ -74,6 +65,7 @@ const Dashboard = ({ token }) => {
 
       {showData && (
         <div>
+          {/* Stock Analysis Table */}
           <h2>Stock Analysis</h2>
           <table>
             <thead>
@@ -100,6 +92,7 @@ const Dashboard = ({ token }) => {
             </tbody>
           </table>
 
+          {/* American Bull Info Table */}
           <h2>American Bull Info</h2>
           <table>
             <thead>
