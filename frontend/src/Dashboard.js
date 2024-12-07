@@ -1,92 +1,156 @@
+// Dashboard.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Navbar, Nav, Container, Row, Col, Card, Button, Table, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Spinner, Alert, Form, Dropdown, Modal } from 'react-bootstrap';
+import { FaTrash } from 'react-icons/fa';
 
 const Dashboard = () => {
+  const [stockList, setStockList] = useState([]);
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
-  const [stockList, setStockList] = useState([]);
-  const [showData, setShowData] = useState(false);
+  const [newStock, setNewStock] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false); // State for Modal
 
   const token = localStorage.getItem('token');
   const axiosInstance = axios.create({
-    baseURL: 'https://stockbot-onb7.onrender.com', // Adjust if hosted elsewhere
+    baseURL: 'http://localhost:8000', // Update if your backend is hosted elsewhere
     headers: {
       'Authorization': `Bearer ${token}`,
     },
   });
 
+  const fetchStocks = async () => {
+    try {
+      const response = await axiosInstance.get('/stocks');
+      setStockList(response.data.stocks);
+    } catch (err) {
+      console.error('Error fetching stocks:', err);
+      setError('Failed to fetch stocks.');
+    }
+  };
+
+  const fetchAnalysisData = async () => {
+    try {
+      const [analysisRes, bullRes] = await Promise.all([
+        axiosInstance.get('/stock_analysis'),
+        axiosInstance.get('/american_bull_info')
+      ]);
+      setStockAnalysisData(analysisRes.data.stock_analysis);
+      setAmericanBullData(bullRes.data.american_bull_info);
+    } catch (err) {
+      console.error('Error fetching analysis data:', err);
+      setError('Failed to fetch analysis data.');
+    }
+  };
+
+  const executeAnalysis = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      setMessage('');
+      const res = await axiosInstance.post('/execute_analysis');
+      setMessage(res.data.status);
+      await fetchAnalysisData();
+    } catch (err) {
+      console.error('Error executing analysis:', err);
+      setError('Failed to execute analysis.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    axiosInstance.get('/stocks')
-      .then(response => setStockList(response.data.stocks))
-      .catch(error => {
-        console.error('Error fetching stock list:', error);
-        setError('Failed to fetch stock list.');
-      });
-  }, [axiosInstance]);
+    fetchStocks();
+    fetchAnalysisData();
+    // eslint-disable-next-line
+  }, []);
 
-  const displayStockData = () => {
-    setLoading(true);
+  const addStock = async (e) => {
+    e.preventDefault();
+    setMessage('');
     setError('');
-    setShowData(false);
 
-    axiosInstance.post('/execute_analysis')
-      .then(() =>
-        Promise.all([
-          axiosInstance.get('/data/Stock Analysis', { params: { timestamp: new Date().getTime() } }),
-          axiosInstance.get('/data/American Bull Info', { params: { timestamp: new Date().getTime() } }),
-        ])
-      )
-      .then(([stockAnalysisRes, americanBullRes]) => {
-        setStockAnalysisData(stockAnalysisRes.data.data);
-        setAmericanBullData(americanBullRes.data.data);
-        setShowData(true);
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-        setError('An error occurred while fetching data.');
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    const trimmedStock = newStock.trim().toUpperCase();
+    if (!trimmedStock) return;
+
+    try {
+      const res = await axiosInstance.post(`/add_stock?stock_symbol=${trimmedStock}`);
+      setMessage(res.data.message);
+      setNewStock('');
+      await fetchStocks();
+
+      // After adding a stock, execute analysis to update data
+      await executeAnalysis();
+    } catch (err) {
+      console.error('Error adding stock:', err);
+      if (err.response && err.response.data && err.response.data.detail) {
+        setError(err.response.data.detail);
+      } else {
+        setError('Error adding stock. Please try again.');
+      }
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
+  const removeStock = async (stockSymbol) => {
+    setMessage('');
+    setError('');
+    try {
+      const res = await axiosInstance.post(`/remove_stock?stock_symbol=${stockSymbol}`);
+      setMessage(res.data.message);
+      await fetchStocks();
+
+      // After removing a stock, execute analysis to update data
+      await executeAnalysis();
+    } catch (err) {
+      console.error('Error removing stock:', err);
+      setError('Could not remove stock.');
+    }
   };
+
+  const deleteAllStocks = async () => {
+    setMessage('');
+    setError('');
+    try {
+      const res = await axiosInstance.post('/delete_all_stocks');
+      setMessage(res.data.message);
+      setStockList([]);
+      setStockAnalysisData([]);
+      setAmericanBullData([]);
+    } catch (err) {
+      console.error('Error deleting all stocks:', err);
+      setError('Failed to delete all stocks.');
+    } finally {
+      setShowDeleteAllModal(false);
+    }
+  };
+
+  const handleShowDeleteAllModal = () => setShowDeleteAllModal(true);
+  const handleCloseDeleteAllModal = () => setShowDeleteAllModal(false);
 
   return (
     <>
-      <Navbar bg="dark" variant="dark" expand="lg">
-        <Container>
-          <Navbar.Brand>Trading Dashboard</Navbar.Brand>
-          <Navbar.Toggle aria-controls="dashboard-navbar-nav" />
-          <Navbar.Collapse id="dashboard-navbar-nav">
-            <Nav className="me-auto">
-              <Nav.Link href="#stock-list">Your Stocks</Nav.Link>
-              <Nav.Link href="#stock-data">Stock Data</Nav.Link>
-            </Nav>
-            <Button variant="outline-light" onClick={logout}>Logout</Button>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-
       <Container className="mt-4">
-        <Row id="stock-list">
-          <Col>
+        {error && <Alert variant="danger" className="my-3">{error}</Alert>}
+        {message && <Alert variant="success" className="my-3">{message}</Alert>}
+
+        <Row className="mb-4">
+          <Col md={6}>
             <h2>Your Stock List</h2>
-            <Card className="mb-4">
+            <Card className="mb-4 shadow-sm">
               <Card.Body>
                 {stockList.length === 0 ? (
-                  <p>You currently have no stocks.</p>
+                  <p className="text-muted">You currently have no stocks.</p>
                 ) : (
-                  <ul className="list-unstyled">
+                  <ul className="list-unstyled mb-0">
                     {stockList.map((stock, index) => (
-                      <li key={index} className="mb-2" style={{ fontSize: '1.1rem', fontWeight: 500 }}>
-                        {stock}
+                      <li key={index} className="d-flex justify-content-between align-items-center mb-2">
+                        <span style={{ fontSize: '1.1rem', fontWeight: 500 }}>{stock}</span>
+                        <Button variant="danger" size="sm" onClick={() => removeStock(stock)}>
+                          <FaTrash /> Remove
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -94,28 +158,64 @@ const Dashboard = () => {
               </Card.Body>
             </Card>
 
-            <div className="d-flex justify-content-start">
-              <Button variant="success" onClick={displayStockData}>
-                Refresh/Display Stock Data
-              </Button>
-            </div>
+            <Card className="mb-4 shadow-sm p-3">
+              <h4>Add Stock</h4>
+              <Form onSubmit={addStock} className="d-flex align-items-center">
+                <Form.Control 
+                  type="text" 
+                  placeholder="Enter stock symbol (e.g., AAPL)" 
+                  value={newStock} 
+                  onChange={(e) => setNewStock(e.target.value)} 
+                  className="me-2"
+                />
+                <Button variant="primary" type="submit" disabled={!newStock.trim()}>
+                  Add
+                </Button>
+              </Form>
 
-            {loading && (
-              <div className="my-3 d-flex align-items-center">
-                <Spinner animation="border" variant="primary" className="me-2" />
-                <span>Loading data...</span>
-              </div>
+              {stockList.length > 0 && (
+                <Dropdown className="mt-3">
+                  <Dropdown.Toggle variant="secondary" id="dropdown-basic">
+                    Manage Stocks
+                  </Dropdown.Toggle>
+
+                  <Dropdown.Menu>
+                    {stockList.map((stock, index) => (
+                      <Dropdown.Item key={index} onClick={() => removeStock(stock)}>
+                        <FaTrash /> Remove {stock}
+                      </Dropdown.Item>
+                    ))}
+                  </Dropdown.Menu>
+                </Dropdown>
+              )}
+            </Card>
+
+            {stockList.length > 0 && (
+              <Button variant="danger" onClick={handleShowDeleteAllModal}>
+                Delete All Stocks
+              </Button>
             )}
-            {error && <p style={{ color: 'red' }} className="mt-3">{error}</p>}
+
+            <Button variant="success" onClick={executeAnalysis} disabled={stockList.length === 0} className="ms-3">
+              {loading ? (
+                <>
+                  <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" /> Executing...
+                </>
+              ) : (
+                "Refresh/Display Stock Data"
+              )}
+            </Button>
           </Col>
         </Row>
 
-        {showData && (
-          <Row className="mt-5" id="stock-data">
-            <Col>
-              <h2>Stock Analysis</h2>
-              <Card className="mb-4">
-                <Card.Body>
+        <Row className="mt-5">
+          <Col>
+            <h2>Stock Analysis</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {stockAnalysisData.length === 0 ? (
+                  <p className="text-muted">No analysis data available.</p>
+                ) : (
                   <Table striped bordered hover responsive>
                     <thead className="table-dark">
                       <tr>
@@ -132,26 +232,33 @@ const Dashboard = () => {
                         <tr key={index}>
                           <td>{item['Stock Name']}</td>
                           <td>{item['Price']}</td>
-                          <td>{item['%K']}</td>
-                          <td>{item['%D']}</td>
+                          <td>{item['%K']?.toFixed(2)}</td>
+                          <td>{item['%D']?.toFixed(2)}</td>
                           <td>{item['Zone']}</td>
                           <td>{item['Decision']}</td>
                         </tr>
                       ))}
                     </tbody>
                   </Table>
-                </Card.Body>
-              </Card>
+                )}
+              </Card.Body>
+            </Card>
 
-              <h2>American Bull Info</h2>
-              <Card className="mb-4">
-                <Card.Body>
+            <h2>American Bull Info</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {americanBullData.length === 0 ? (
+                  <p className="text-muted">No American Bull data available.</p>
+                ) : (
                   <Table striped bordered hover responsive>
                     <thead className="table-dark">
                       <tr>
                         <th>Stock Name</th>
                         <th>Signal</th>
                         <th>Date</th>
+                        <th>Price</th>
+                        <th>Change%</th>
+                        <th>Value</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -160,16 +267,37 @@ const Dashboard = () => {
                           <td>{item['Stock Name']}</td>
                           <td>{item['Signal']}</td>
                           <td>{item['Date']}</td>
+                          <td>{item['Price']}</td>
+                          <td>{item['Change%']}</td>
+                          <td>{item['Value']}</td>
                         </tr>
                       ))}
                     </tbody>
                   </Table>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        )}
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
       </Container>
+
+      {/* Delete All Confirmation Modal */}
+      <Modal show={showDeleteAllModal} onHide={handleCloseDeleteAllModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete All</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Are you sure you want to delete all your stocks and associated data? This action cannot be undone.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseDeleteAllModal}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={deleteAllStocks}>
+            Delete All
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };

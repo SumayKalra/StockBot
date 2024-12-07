@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Form, Button, Container, Card } from 'react-bootstrap';
+import { Form, Button, Container, Card, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 
 function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errMessage, setErrMessage] = useState('');
 
   const handleChange = (e) => {
+    setErrMessage('');
     setFormData({...formData, [e.target.name]: e.target.value });
   };
 
@@ -20,15 +22,16 @@ function Login() {
       window.location.href = '/';
     } catch (error) {
       console.error("Error logging in:", error);
-      alert('Login failed. Check your credentials.');
+      setErrMessage('Login failed. Check your credentials.');
     }
   };
 
   return (
-    <Container className="mt-4" style={{ maxWidth: '400px' }}>
-      <Card>
+    <Container className="mt-4 d-flex justify-content-center" style={{ minHeight: '70vh' }}>
+      <Card style={{ maxWidth: '400px', width: '100%' }} className="shadow">
         <Card.Body>
-          <h2 className="mb-3 text-center">Log In</h2>
+          <h2 className="mb-4 text-center">Log In</h2>
+          {errMessage && <Alert variant="danger">{errMessage}</Alert>}
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
               <Form.Label>Email</Form.Label>
@@ -41,7 +44,7 @@ function Login() {
                 placeholder="Enter your email"
               />
             </Form.Group>
-            <Form.Group className="mb-4">
+            <Form.Group className="mb-3">
               <Form.Label>Password</Form.Label>
               <Form.Control 
                 type="password" 
