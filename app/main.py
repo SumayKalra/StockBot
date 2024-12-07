@@ -1,49 +1,45 @@
+# main.py
 import os
-import json
-import base64
 from fastapi import FastAPI, HTTPException, Query, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 import yfinance as yf
-import openpyxl
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 import logging
-
-# Firebase Admin SDK
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, firestore
+import requests
+from bs4 import BeautifulSoup
 
-# Logger setup for production
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
-# Firebase Initialization
-firebase_credentials = os.getenv("SERVICE_ACCOUNT_KEY")  # Environment variable with Base64-encoded Firebase key
-if not firebase_credentials:
-    raise RuntimeError("Firebase SERVICE_ACCOUNT_KEY not set in environment variables.")
+# --- Firebase Initialization ---
+# Ensure you have a serviceAccountKey.json in the same directory
+if not os.path.exists("serviceAccountKey.json"):
+    raise RuntimeError("serviceAccountKey.json not found. Place your Firebase service account key here for local dev.")
 
-# Decode Firebase credentials
-firebase_key_json = json.loads(base64.b64decode(firebase_credentials).decode("utf-8"))
-cred = credentials.Certificate(firebase_key_json)
+cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Initialize FastAPI app
+# --- FastAPI App ---
 app = FastAPI()
 
-# CORS middleware for production and local development
+# CORS for local dev and production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://stocks-d4bba.web.app/",  # Production frontend
-        "http://localhost:3000",  # Local development frontend
+        "http://localhost:3000",          # Local dev frontend
+        "https://stocks-d4bba.web.app",   # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Middleware to log incoming requests
+# --- Middleware ---
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info(f"Request: {request.method} {request.url}")
@@ -51,8 +47,7 @@ async def log_requests(request: Request, call_next):
     logger.info(f"Response status: {response.status_code}")
     return response
 
-
-# Helper: Get Current User
+# --- Helpers ---
 def get_current_user(authorization: Optional[str] = Header(None)) -> str:
     if not authorization:
         raise HTTPException(status_code=401, detail="No authorization header provided.")
@@ -65,38 +60,150 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> str:
         email = decoded_token.get("email")
         if not email:
             raise HTTPException(status_code=401, detail="Invalid token: email not found.")
-        # Ensure user document exists in Firestore
         user_ref = db.collection("users").document(email)
         if not user_ref.get().exists:
-            user_ref.set({"stocks": []})
+            user_ref.set({
+                "stocks": [],
+                "stock_analysis": {},
+                "american_bull_info": {}
+            })
         return email
     except Exception as e:
         logger.error(f"Error verifying Firebase token: {e}")
         raise HTTPException(status_code=401, detail="Invalid or expired token.")
 
+def recommend_data() -> List[Dict]:
+    """Scrape recommended stock data from American Bulls website."""
+    url = "https://www.americanbulls.com/Default.aspx?lang=en"
 
-# Helper: Initialize Excel Workbook
-def initialize_excel(file_name="trade_log.xlsx"):
-    if not os.path.exists(file_name):
-        wb = openpyxl.Workbook()
-        wb.active.title = "Trade Log"
-        wb["Trade Log"].append(["Date", "Action", "Stock Name", "Price", "Shares", "Zone", "Percent", "Executed"])
-        wb.create_sheet(title="Stock Analysis").append(["Stock Name", "Price", "%K", "%D", "Zone", "Decision"])
-        wb.create_sheet(title="American Bull Info").append(["Stock Name", "Signal", "Date"])
-        wb.save(file_name)
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, "lxml")
 
+        # Find the table that contains the stock data
+        table = soup.find("table", class_="table-hover")
+        if not table:
+            logger.error("No table found on the American Bulls page.")
+            return []
 
-# Helper: Log Data into Excel Sheets
-def log_data(sheet_name: str, data: list, file_name="trade_log.xlsx"):
-    wb = openpyxl.load_workbook(file_name)
-    if sheet_name not in wb.sheetnames:
-        wb.create_sheet(sheet_name)
-    ws = wb[sheet_name]
-    ws.append(data)
-    wb.save(file_name)
+        # Extract all rows (tr elements) with class "gridRows"
+        rows = table.find_all("tr", class_="gridRows")
+        stock_data = []
 
+        # Helper function to clean text
+        def clean_text(text):
+            return ' '.join(text.split()).replace("\n", "").replace("\r", "").strip()
 
-# Endpoint: Add Stock
+        for row in rows:
+            date_div = row.find("div", id=lambda x: x and "Tarih" in x)
+            stock_a = row.find("a", class_="dxbs-hyperlink")
+            signal_div = row.find("div", id=lambda x: x and "gridlevel" in x)
+            buy_level_div = row.find("div", id=lambda x: x and "gridprice" in x)
+            close_price_div = row.find("div", id=lambda x: x and "gridclose" in x)
+
+            date = clean_text(date_div.text) if date_div else "N/A"
+            stock_name = clean_text(stock_a.text) if stock_a else "N/A"
+            signal = clean_text(signal_div.text) if signal_div else "N/A"
+            buy_level = clean_text(buy_level_div.text) if buy_level_div else "N/A"
+            close_price = clean_text(close_price_div.text) if close_price_div else "N/A"
+
+            stock_data.append({
+                "Date": date,
+                "Stock Name": stock_name,
+                "Signal": signal,
+                "Buy Level": buy_level,
+                "Close Price": close_price,
+            })
+
+        return stock_data
+
+    except Exception as e:
+        logger.error(f"Error scraping American Bulls data: {e}")
+        return []
+
+def specific_stock(stock_code: str) -> List[Dict]:
+    """Scrape specific stock data from American Bulls website."""
+    url = f"https://www.americanbulls.com/SignalPage.aspx?lang=en&Ticker={stock_code}"
+
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, "lxml")
+
+        # Find the table by its id
+        table = soup.find("table", id="Content_SignalHistory_SignalShortHistoryGrid_DXMainTable")
+        if not table:
+            logger.error(f"Table not found for stock: {stock_code}")
+            return []
+
+        table_data = []
+        # Loop through each row in the table body (tr elements)
+        for row in table.find("tbody").find_all("tr"):
+            cells = row.find_all("td")
+            if len(cells) >= 5:
+                date = cells[0].text.strip()
+                price = cells[1].text.strip()
+                signal = cells[2].text.strip()
+                change = cells[3].text.strip()
+                value = cells[4].text.strip()
+
+                table_data.append({
+                    "Date": date,
+                    "Price": price,
+                    "Signal": signal,
+                    "Change%": change,
+                    "Value": value,
+                })
+
+        return table_data
+
+    except Exception as e:
+        logger.error(f"Error scraping specific stock data for {stock_code}: {e}")
+        return []
+
+def calculate_stochastic(stock_symbol: str, period: int = 14):
+    """Calculate the stochastic oscillator for a given stock."""
+    try:
+        data = yf.download(stock_symbol, period='1mo', interval='1d')
+        if data.empty:
+            logger.error(f"No data found for stock: {stock_symbol}")
+            return None, None
+
+        high_max = data['High'].rolling(window=period).max()
+        low_min = data['Low'].rolling(window=period).min()
+        data['%K'] = 100 * ((data['Close'] - low_min) / (high_max - low_min))
+        data['%D'] = data['%K'].rolling(window=3).mean()
+
+        latest_k = data['%K'].iloc[-1]
+        latest_d = data['%D'].iloc[-1]
+        return latest_k, latest_d
+    except Exception as e:
+        logger.error(f"Error calculating stochastic for {stock_symbol}: {e}")
+        return None, None
+
+def determine_zone(latest_k: float, latest_d: float) -> str:
+    """Determine the zone based on %K and %D values."""
+    if latest_k is None or latest_d is None:
+        return "Unknown"
+    elif latest_k > 80 or latest_d > 80:
+        return "Red Zone: Overbought - Potential Sell Opportunity"
+    elif 20 <= latest_k <= 80 or 20 <= latest_d <= 80:
+        return "Neutral Zone: Hold Phase"
+    elif latest_k < 20 or latest_d < 20:
+        return "Green Zone: Oversold - Potential Buy Opportunity"
+    else:
+        return "Neutral Zone: Hold Phase"
+
+def decide_action(zone: str) -> str:
+    """Decide action based on the zone."""
+    if "Overbought" in zone:
+        return "Consider Selling"
+    elif "Oversold" in zone:
+        return "Consider Buying"
+    else:
+        return "Hold"
+
+# --- Endpoints ---
+
 @app.post("/add_stock")
 def add_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_current_user)):
     stock_symbol = stock_symbol.upper()
@@ -109,7 +216,6 @@ def add_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_curr
         logger.error(f"Error fetching stock data for {stock_symbol}: {e}")
         raise HTTPException(status_code=400, detail=f"Invalid stock symbol: {stock_symbol}")
 
-    # Add stock to Firestore
     user_ref = db.collection("users").document(user_email)
     user_data = user_ref.get().to_dict()
     stocks = user_data.get("stocks", [])
@@ -119,8 +225,6 @@ def add_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_curr
     user_ref.update({"stocks": stocks})
     return {"message": f"Stock {stock_symbol} added to your list."}
 
-
-# Endpoint: Remove Stock
 @app.post("/remove_stock")
 def remove_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_current_user)):
     stock_symbol = stock_symbol.upper()
@@ -131,18 +235,22 @@ def remove_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_c
         return {"message": f"Stock {stock_symbol} is not in your list."}
     stocks = [s for s in stocks if s != stock_symbol]
     user_ref.update({"stocks": stocks})
+
+    # Remove analysis data
+    stock_analysis_ref = user_ref.collection("stock_analysis").document(stock_symbol)
+    stock_analysis_ref.delete()
+
+    american_bull_ref = user_ref.collection("american_bull_info").document(stock_symbol)
+    american_bull_ref.delete()
+
     return {"message": f"Stock {stock_symbol} removed from your list."}
 
-
-# Endpoint: Get User Stocks
 @app.get("/stocks")
 def get_stocks(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)
     user_data = user_ref.get().to_dict()
     return {"stocks": user_data.get("stocks", [])}
 
-
-# Endpoint: Execute Stock Analysis
 @app.post("/execute_analysis")
 def execute_analysis(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)
@@ -151,42 +259,119 @@ def execute_analysis(user_email: str = Depends(get_current_user)):
     if not user_stocks:
         return {"status": "No stocks to analyze", "results": []}
 
-    initialize_excel()
     results = []
-    today_date = datetime.today().strftime('%m/%d')
-
     for stock in user_stocks:
         stock = stock.upper()
         try:
+            # Fetch latest price
             ticker = yf.Ticker(stock)
             latest_price = ticker.history(period='1d')['Close'].iloc[-1]
-            results.append({"stock": stock, "price": latest_price, "analysis": "Buy/Hold/Sell"})
+
+            # Calculate stochastic oscillator
+            latest_k, latest_d = calculate_stochastic(stock)
+            zone = determine_zone(latest_k, latest_d)
+            decision = decide_action(zone)
+
+            # Log to Firestore
+            stock_analysis_ref = user_ref.collection("stock_analysis").document(stock)
+            stock_analysis_ref.set({
+                "Stock Name": stock,
+                "Price": latest_price,
+                "%K": latest_k,
+                "%D": latest_d,
+                "Zone": zone,
+                "Decision": decision,
+                "Last Updated": datetime.utcnow()
+            })
+
+            # Scrape American Bull Info
+            american_bull_data = specific_stock(stock)
+            # Assuming american_bull_data is a list; take the latest entry
+            if american_bull_data:
+                latest_bull = american_bull_data[0]
+                american_bull_ref = user_ref.collection("american_bull_info").document(stock)
+                american_bull_ref.set({
+                    "Stock Name": stock,
+                    "Signal": latest_bull.get("Signal", "N/A"),
+                    "Date": latest_bull.get("Date", "N/A"),
+                    "Price": latest_bull.get("Price", "N/A"),
+                    "Change%": latest_bull.get("Change%", "N/A"),
+                    "Value": latest_bull.get("Value", "N/A"),
+                    "Last Updated": datetime.utcnow()
+                })
+            else:
+                american_bull_ref = user_ref.collection("american_bull_info").document(stock)
+                american_bull_ref.set({
+                    "Stock Name": stock,
+                    "Signal": "N/A",
+                    "Date": "N/A",
+                    "Price": "N/A",
+                    "Change%": "N/A",
+                    "Value": "N/A",
+                    "Last Updated": datetime.utcnow()
+                })
+
+            results.append({"stock": stock, "price": latest_price, "analysis": decision})
         except Exception as e:
             logger.error(f"Error analyzing stock {stock}: {e}")
             results.append({"stock": stock, "error": str(e)})
 
     return {"status": "Analysis executed", "results": results}
 
+@app.get("/stock_analysis")
+def get_stock_analysis(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    stock_analysis_ref = user_ref.collection("stock_analysis")
+    docs = stock_analysis_ref.stream()
+    analysis_data = []
+    for doc in docs:
+        data = doc.to_dict()
+        analysis_data.append(data)
+    return {"stock_analysis": analysis_data}
 
-# Endpoint: Get Data from Excel
-@app.get("/data/{sheet_name}")
-def get_data(sheet_name: str, user_email: str = Depends(get_current_user)):
-    file_name = "trade_log.xlsx"
-    if not os.path.exists(file_name):
-        return {"error": "Data file not found."}
-    wb = openpyxl.load_workbook(file_name, data_only=True)
-    if sheet_name not in wb.sheetnames:
-        return {"error": f"Sheet {sheet_name} not found."}
-    ws = wb[sheet_name]
-    data = []
-    headers = [cell.value for cell in ws[1]]
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        record = dict(zip(headers, row))
-        data.append(record)
-    return {"data": data}
+@app.get("/american_bull_info")
+def get_american_bull_info(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    american_bull_ref = user_ref.collection("american_bull_info")
+    docs = american_bull_ref.stream()
+    bull_data = []
+    for doc in docs:
+        data = doc.to_dict()
+        bull_data.append(data)
+    return {"american_bull_info": bull_data}
 
+@app.post("/delete_all_stocks")
+def delete_all_stocks(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    
+    # Get current stocks
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    
+    if not stocks:
+        return {"message": "No stocks to delete."}
+    
+    # Update the stocks array to empty
+    user_ref.update({"stocks": []})
+    
+    # Batch delete documents in stock_analysis and american_bull_info
+    stock_analysis_ref = user_ref.collection("stock_analysis")
+    american_bull_ref = user_ref.collection("american_bull_info")
+    
+    batch = db.batch()
+    
+    # Delete all documents in stock_analysis
+    for doc in stock_analysis_ref.stream():
+        batch.delete(doc.reference)
+    
+    # Delete all documents in american_bull_info
+    for doc in american_bull_ref.stream():
+        batch.delete(doc.reference)
+    
+    batch.commit()
+    
+    return {"message": "All stocks and associated data have been deleted."}
 
-# Endpoint: Root
 @app.get("/")
 def root():
-    return {"message": "API is running in production!"}
+    return {"message": "API is running!"}
