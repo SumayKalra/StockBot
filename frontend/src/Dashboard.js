@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Container, Row, Col, Card, Button, Table, Spinner, Alert, Form, Dropdown, Modal } from 'react-bootstrap';
+import { FaTrash } from 'react-icons/fa';
 import { AuthContext } from './AuthContext'; // Import AuthContext
 
 const Dashboard = () => {
