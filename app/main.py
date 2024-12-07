@@ -34,7 +34,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",            # For local development
-        "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app"
+        "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",
+        "https://stockbot-onb7.onrender.com"
     ],
     allow_credentials=True,
     allow_methods=["*"],
