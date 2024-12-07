@@ -2,7 +2,7 @@ import axios from "axios";
 
 const createAxiosInstance = (getToken) => {
   const instance = axios.create({
-    baseURL: "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",
+    baseURL: "https://stockbot-onb7.onrender.com",
   });
 
   // Add an interceptor to include the token in every request
