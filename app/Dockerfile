@@ -12,7 +12,6 @@ COPY . .
 
 # Copy serviceAccountKey.json if not already in code base
 # Make sure this file is in your .gitignore if your repo is public
-COPY serviceAccountKey.json /app/serviceAccountKey.json
 
 EXPOSE 8000
 
