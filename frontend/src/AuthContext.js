@@ -1,23 +1,26 @@
-// AuthContext.js
+// src/contexts/AuthContext.js
 import React, { createContext, useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase"; // Ensure you've correctly set up Firebase
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "./firebase"; // Adjust the path if necessary
 
+// Create a Context for Authentication
 export const AuthContext = createContext();
 
-const AuthProvider = ({ children }) => {
+// Create a Provider Component
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null); // Store the user object
   const [token, setToken] = useState(null); // Store the ID token
   const [loading, setLoading] = useState(true); // To show a loading spinner while checking auth state
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+    // Subscribe to Firebase Auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
         try {
-          const newToken = await user.getIdToken(true); // Force token refresh
-          setUser(user);
+          const newToken = await currentUser.getIdToken(true); // Force token refresh
+          setUser(currentUser);
           setToken(newToken);
-          localStorage.setItem("token", newToken); // Save the new token to localStorage
+          localStorage.setItem("token", newToken); // Optional: Persist token in localStorage
         } catch (error) {
           console.error("Error refreshing token:", error);
         }
@@ -29,14 +32,18 @@ const AuthProvider = ({ children }) => {
       setLoading(false); // Done checking auth state
     });
 
-    return () => unsubscribe(); // Clean up the subscription on component unmount
+    // Clean up the subscription on component unmount
+    return () => unsubscribe();
   }, []);
 
+  // Function to log out the user
+  const logout = () => {
+    return signOut(auth);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading }}>
+    <AuthContext.Provider value={{ user, token, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
-
-export default AuthProvider;

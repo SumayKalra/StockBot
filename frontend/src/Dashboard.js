@@ -1,10 +1,12 @@
-// Dashboard.js
-import React, { useState, useEffect } from 'react';
+// src/pages/Dashboard.js
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Container, Row, Col, Card, Button, Table, Spinner, Alert, Form, Dropdown, Modal } from 'react-bootstrap';
 import { FaTrash } from 'react-icons/fa';
+import { AuthContext } from './AuthContext'; // Import AuthContext
 
 const Dashboard = () => {
+  const { token } = useContext(AuthContext); // Access token from AuthContext
   const [stockList, setStockList] = useState([]);
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
@@ -14,7 +16,6 @@ const Dashboard = () => {
   const [message, setMessage] = useState('');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false); // State for Modal
 
-  const token = localStorage.getItem('token');
   const axiosInstance = axios.create({
     baseURL: 'http://localhost:8000', // Update if your backend is hosted elsewhere
     headers: {
@@ -66,7 +67,7 @@ const Dashboard = () => {
     fetchStocks();
     fetchAnalysisData();
     // eslint-disable-next-line
-  }, []);
+  }, [token]); // Re-fetch when token changes
 
   const addStock = async (e) => {
     e.preventDefault();
