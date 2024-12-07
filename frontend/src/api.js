@@ -2,7 +2,7 @@ import axios from "axios";
 
 const createAxiosInstance = (getToken) => {
   const instance = axios.create({
-    baseURL: "http://localhost:8000", // Adjust your backend URL as needed
+    baseURL: "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",
   });
 
   // Add an interceptor to include the token in every request
