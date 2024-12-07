@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+firebase-admin
+google-cloud-firestore
+yfinance
+openpyxl
+python-dotenv
+fastapi[all]
