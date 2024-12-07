@@ -16,13 +16,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
 # --- Firebase Initialization ---
-# Ensure you have a serviceAccountKey.json in the same directory
-if not os.path.exists("serviceAccountKey.json"):
-    raise RuntimeError("serviceAccountKey.json not found. Place your Firebase service account key here for local dev.")
+service_account_path = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
 
-cred = credentials.Certificate("serviceAccountKey.json")
+if not os.path.exists(service_account_path):
+    raise RuntimeError(f"{service_account_path} not found. Ensure the file is included in the deployment.")
+
+cred = credentials.Certificate(service_account_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
+
 
 # --- FastAPI App ---
 app = FastAPI()
