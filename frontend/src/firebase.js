@@ -4,12 +4,13 @@ import { getAuth } from "firebase/auth";
 // import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
+  apiKey: "AIzaSyC12S5Bc0H3QLg7JHN8mmClAbrb0x1hNPM",
+  authDomain: "stocks-d4bba.firebaseapp.com",
   projectId: "stocks-d4bba",
-  storageBucket: "YOUR_STORAGE_BUCKET",
+  storageBucket: "stocks-d4bba.firebasestorage.app",
   messagingSenderId: "254233724833",
-  appId: "YOUR_APP_ID"
+  appId: "1:254233724833:web:e2cb2d5e4ff88d02046de0",
+  measurementId: "G-REG00XTRS2"
 };
 
 // Initialize Firebase

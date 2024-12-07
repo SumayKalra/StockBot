@@ -12,7 +12,7 @@ const Dashboard = () => {
 
   const token = localStorage.getItem('token');
   const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8000', // Adjust if hosted elsewhere
+    baseURL: 'https://stockbot-onb7.onrender.com', // Adjust if hosted elsewhere
     headers: {
       'Authorization': `Bearer ${token}`,
     },
