@@ -17,7 +17,7 @@ const Dashboard = () => {
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false); // State for Modal
 
   const axiosInstance = axios.create({
-    baseURL: 'https://stockbot-onb7.onrender.com', // Update if your backend is hosted elsewhere
+    baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000', // Fallback to localhost
     headers: {
       'Authorization': `Bearer ${token}`,
     },

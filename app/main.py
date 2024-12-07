@@ -34,7 +34,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",            # For local development
-        "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",
+        "https://stock-bot-brown.vercel.app",  # Your deployed frontend
+        "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",        
         "https://stockbot-onb7.onrender.com"
     ],
     allow_credentials=True,
@@ -206,9 +207,14 @@ def decide_action(zone: str) -> str:
         return "Hold"
 
 # --- Endpoints ---
+@app.options("/{full_path:path}")
+async def preflight(full_path: str):
+    return {"message": "Preflight request"}
 
 @app.post("/add_stock")
-def add_stock(stock_symbol: str = Query(...), user_email: str = Depends(get_current_user)):
+def add_stock(stock_symbol: str = Query(None), user_email: str = Depends(get_current_user)):
+    if not stock_symbol:
+        raise HTTPException(status_code=400, detail="Stock symbol is required.")
     stock_symbol = stock_symbol.upper()
     try:
         ticker = yf.Ticker(stock_symbol)

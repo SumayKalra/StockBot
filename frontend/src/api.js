@@ -1,10 +1,11 @@
 import axios from "axios";
 
-const createAxiosInstance = (getToken) => {
-  const instance = axios.create({
-    baseURL: "https://stockbot-onb7.onrender.com",
-  });
 
+const createAxiosInstance = (getToken) => {
+    const instance = axios.create({
+      baseURL: process.env.REACT_APP_BACKEND_URL || "http://localhost:8000",
+    });
+  
   // Add an interceptor to include the token in every request
   instance.interceptors.request.use(
     async (config) => {
