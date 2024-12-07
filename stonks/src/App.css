@@ -1,23 +1,9 @@
-/* App.css */
-
 body {
   background-color: #f8f9fa;
+  margin-bottom: 60px;
 }
 
-footer {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-}
-
-.list-group-item {
-  font-size: 1.1rem;
-}
-
-h2, h3 {
-  margin-top: 1.5rem;
-}
-
-.table td, .table th {
-  vertical-align: middle;
+h1, h2, h3 {
+  font-weight: 600;
+  color: #343a40;
 }
