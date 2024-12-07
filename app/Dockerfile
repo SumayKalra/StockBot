@@ -2,16 +2,13 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies if needed, for example, if pyodbc/firestore needed extras.
-# RUN apt-get update && apt-get install -y ...
+# Set PYTHONPATH to the working directory
+ENV PYTHONPATH=/app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-# Copy serviceAccountKey.json if not already in code base
-# Make sure this file is in your .gitignore if your repo is public
 
 EXPOSE 8000
 
