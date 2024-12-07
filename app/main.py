@@ -59,6 +59,7 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> str:
     if len(token_parts) != 2 or token_parts[0].lower() != "bearer":
         raise HTTPException(status_code=401, detail="Invalid authorization format.")
     id_token = token_parts[1]
+    print(token_parts[1])
     try:
         decoded_token = firebase_auth.verify_id_token(id_token)
         email = decoded_token.get("email")
