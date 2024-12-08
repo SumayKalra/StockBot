@@ -35,8 +35,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",            # For local development
         "https://stock-bot-brown.vercel.app",  # Your deployed frontend
-        "https://stock-d0ugs28f3-sumays-projects-d15cfe10.vercel.app",        
-        "https://stockbot-onb7.onrender.com"
+        "https://7bf1-2603-8000-8ef0-8870-7592-4ff5-d6fd-f5e0.ngrok-free.app",
+        "https://stock-n3omx2v9k-sumays-projects-d15cfe10.vercel.app" ,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -59,7 +59,6 @@ def get_current_user(authorization: Optional[str] = Header(None)) -> str:
     if len(token_parts) != 2 or token_parts[0].lower() != "bearer":
         raise HTTPException(status_code=401, detail="Invalid authorization format.")
     id_token = token_parts[1]
-    print(token_parts[1])
     try:
         decoded_token = firebase_auth.verify_id_token(id_token)
         email = decoded_token.get("email")

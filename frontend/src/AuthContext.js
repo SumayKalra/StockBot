@@ -1,48 +1,41 @@
-// src/contexts/AuthContext.js
-import React, { createContext, useState, useEffect } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase"; // Adjust the path if necessary
+// src/AuthContext.js
+import React, { createContext, useState, useEffect } from 'react';
+import { auth } from './firebase'; // Ensure the path is correct
+import { onAuthStateChanged } from 'firebase/auth';
 
-// Create a Context for Authentication
 export const AuthContext = createContext();
 
-// Create a Provider Component
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Store the user object
-  const [token, setToken] = useState(null); // Store the ID token
-  const [loading, setLoading] = useState(true); // To show a loading spinner while checking auth state
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [token, setToken] = useState(null);
 
   useEffect(() => {
-    // Subscribe to Firebase Auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
       if (currentUser) {
         try {
-          const newToken = await currentUser.getIdToken(true); // Force token refresh
-          setUser(currentUser);
-          setToken(newToken);
-          localStorage.setItem("token", newToken); // Optional: Persist token in localStorage
+          const idToken = await currentUser.getIdToken();
+          setToken(idToken);
         } catch (error) {
-          console.error("Error refreshing token:", error);
+          console.error("Error fetching ID token:", error);
+          setToken(null);
         }
       } else {
-        setUser(null);
         setToken(null);
-        localStorage.removeItem("token"); // Clear token when logged out
       }
-      setLoading(false); // Done checking auth state
+      setLoading(false);
     });
 
-    // Clean up the subscription on component unmount
     return () => unsubscribe();
   }, []);
 
-  // Function to log out the user
   const logout = () => {
-    return signOut(auth);
+    return auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, token, logout }}>
       {children}
     </AuthContext.Provider>
   );

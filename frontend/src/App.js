@@ -7,11 +7,22 @@ import Dashboard from './Dashboard';
 import ProtectedRoute from './ProtectedRoute';
 import NavbarComponent from './NavbarComponent';
 import RobinhoodBot from './RobinhoodBot'; // Import the Robinhood Bot component
-import { AuthContext } from './AuthContext';
+import { AuthContext, AuthProvider } from './AuthContext'; // Import AuthProvider
 import { Spinner, Container } from 'react-bootstrap';
 
 function App() {
-  const { loading, user } = useContext(AuthContext); // Ensure both loading and user are destructured
+  return (
+    <AuthProvider>
+      <Router>
+        <NavbarComponent />
+        <AuthWrapper />
+      </Router>
+    </AuthProvider>
+  );
+}
+
+const AuthWrapper = () => {
+  const { loading, user } = useContext(AuthContext); // Destructure loading and user
 
   if (loading) {
     // Show spinner while loading authentication state
@@ -23,32 +34,29 @@ function App() {
   }
 
   return (
-    <Router>
-      <NavbarComponent />
-      <Routes>
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/robinhood-bot"
-          element={
-            <ProtectedRoute>
-              <RobinhoodBot />
-            </ProtectedRoute>
-          }
-        />
-        {/* Redirect any unknown routes to Dashboard if authenticated, else to Login */}
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/robinhood-bot"
+        element={
+          <ProtectedRoute>
+            <RobinhoodBot />
+          </ProtectedRoute>
+        }
+      />
+      {/* Redirect any unknown routes to Dashboard if authenticated, else to Login */}
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+    </Routes>
   );
-}
+};
 
 export default App;
