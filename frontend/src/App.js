@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useContext } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Signup from './Signup';
 import Login from './Login';
@@ -7,22 +7,20 @@ import Dashboard from './Dashboard';
 import ProtectedRoute from './ProtectedRoute';
 import NavbarComponent from './NavbarComponent';
 import RobinhoodBot from './RobinhoodBot'; // Import the Robinhood Bot component
-import { AuthContext, AuthProvider } from './AuthContext'; // Import AuthProvider
+import { AuthContext } from './AuthContext'; // Removed AuthProvider import
 import { Spinner, Container } from 'react-bootstrap';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <NavbarComponent />
-        <AuthWrapper />
-      </Router>
-    </AuthProvider>
+    <Router>
+      <NavbarComponent />
+      <AuthWrapper />
+    </Router>
   );
 }
 
 const AuthWrapper = () => {
-  const { loading, user } = useContext(AuthContext); // Destructure loading and user
+  const { loading, user } = React.useContext(AuthContext); // Destructure loading and user
 
   if (loading) {
     // Show spinner while loading authentication state
