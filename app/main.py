@@ -35,8 +35,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",            # For local development
         "https://stock-bot-brown.vercel.app",  # Your deployed frontend
-        "https://b925-2603-8000-8ef0-8870-f408-f587-a65a-5f9e.ngrok-free.app",
-        "https://stock-15j2bzrqk-sumays-projects-d15cfe10.vercel.app" ,
+        "https://stockbot-onb7.onrender.com" ,
     ],
     allow_credentials=True,
     allow_methods=["*"],
