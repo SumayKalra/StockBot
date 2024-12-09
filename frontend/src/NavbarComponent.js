@@ -1,4 +1,3 @@
-// src/components/NavbarComponent.js
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from './AuthContext'; // Import AuthContext
@@ -14,7 +13,6 @@ const NavbarComponent = () => {
       navigate('/login'); // Redirect to Login page
     } catch (error) {
       console.error("Error logging out:", error);
-      // Optionally, display an error message to the user
     }
   };
 
@@ -25,10 +23,12 @@ const NavbarComponent = () => {
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto">
+            <Nav.Link as={Link} to="/">Home</Nav.Link> {/* Added Home Link */}
+            <Nav.Link as={Link} to="/about">About Us</Nav.Link> {/* Added About Us Link */}
             {user ? (
               <>
                 <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
-                <Nav.Link as={Link} to="/robinhood-bot">Robinhood Bot</Nav.Link> {/* Both link to /dashboard */}
+                <Nav.Link as={Link} to="/robinhood-bot">Robinhood Bot</Nav.Link>
                 <Button variant="outline-light" onClick={handleLogout} className="ms-2">Logout</Button>
               </>
             ) : (

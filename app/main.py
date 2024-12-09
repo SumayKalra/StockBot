@@ -10,6 +10,17 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, firestore
 import requests
 from bs4 import BeautifulSoup
+import robin_stocks.robinhood as r
+from pydantic import BaseModel
+import time
+from fastapi.background import BackgroundTasks
+
+
+class Credentials(BaseModel):
+    username: str
+    password: str
+
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -34,13 +45,86 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",            # For local development
-        "https://stock-bot-brown.vercel.app",  # Your deployed frontend
-        "https://stockbot-onb7.onrender.com" ,
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.post("/validate_and_fetch_trades")
+async def validate_and_fetch_trades(credentials: Credentials):
+    """
+    Validate Robinhood credentials, fetch past trades, cash balance, buying power,
+    profit, and recommended trades.
+    """
+    try:
+        # Attempt login
+        response = r.login(credentials.username, credentials.password, store_session=False)
+
+        if response.get("mfa_required"):
+            return {"mfaRequired": True, "message": "MFA required. Please provide the MFA code."}
+
+        if response.get("access_token"):
+            # Store credentials in Firestore securely
+            user_ref = db.collection("users").document(credentials.username)
+            user_ref.set({
+                "username": credentials.username,
+                "password": credentials.password,  # Optional: Encrypt this before storing
+                "last_login": datetime.utcnow().isoformat()
+            }, merge=True)
+
+            # Fetch account profile for cash details
+            account_profile = r.profiles.load_account_profile()
+            portfolio_cash = float(account_profile.get("portfolio_cash", 0))
+            buying_power = float(account_profile.get("buying_power", 0))
+            cash_available = float(account_profile.get("cash", 0))
+
+            # Fetch stock orders
+            orders = r.orders.get_all_stock_orders()
+
+            # Filter and format the orders
+            trades = []
+            for order in orders:
+                if order.get("state") == "filled":
+                    # Fetch the stock symbol using the instrument URL
+                    instrument_url = order.get("instrument")
+                    instrument_details = requests.get(instrument_url).json()
+                    trades.append({
+                        "symbol": instrument_details.get("symbol"),  # Stock symbol
+                        "side": order.get("side"),
+                        "quantity": float(order.get("quantity", 0)),
+                        "price": float(order.get("average_price", 0)),
+                        "date": order.get("last_transaction_at"),
+                    })
+
+            # Sort trades by date
+            trades = sorted(trades, key=lambda x: x["date"], reverse=True)
+
+            # Provide recommended trades (placeholder)
+            recommended_trades = [
+                {"symbol": "AAPL", "reason": "Strong quarterly earnings growth."},
+                {"symbol": "GOOGL", "reason": "Positive technical indicators."},
+                {"symbol": "TSLA", "reason": "Increasing demand in EV market."},
+            ]
+
+            return {
+                "isValid": True,
+                "message": "Login successful. Trades fetched.",
+                "trades": trades,
+                "balance": portfolio_cash,
+                "buying_power": buying_power,
+                "cash": cash_available,
+                "recommendations": recommended_trades,
+            }
+
+        return {"isValid": False, "error": "Login failed. Invalid credentials."}
+
+    except Exception as e:
+        logger.error(f"Error during validation or fetching trades: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 
 # --- Middleware ---
 @app.middleware("http")
@@ -336,6 +420,7 @@ def get_stock_analysis(user_email: str = Depends(get_current_user)):
         data = doc.to_dict()
         analysis_data.append(data)
     return {"stock_analysis": analysis_data}
+
 
 @app.get("/american_bull_info")
 def get_american_bull_info(user_email: str = Depends(get_current_user)):

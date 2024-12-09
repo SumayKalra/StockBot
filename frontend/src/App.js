@@ -1,4 +1,3 @@
-// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Signup from './Signup';
@@ -7,6 +6,8 @@ import Dashboard from './Dashboard';
 import ProtectedRoute from './ProtectedRoute';
 import NavbarComponent from './NavbarComponent';
 import RobinhoodBot from './RobinhoodBot'; // Import the Robinhood Bot component
+import Home from './Home'; // Import Home Page
+import AboutUs from './AboutUs'; // Import About Us Page
 import { AuthContext } from './AuthContext'; // Removed AuthProvider import
 import { Spinner, Container } from 'react-bootstrap';
 
@@ -33,6 +34,8 @@ const AuthWrapper = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<Home />} /> {/* Home Page */}
+      <Route path="/about" element={<AboutUs />} /> {/* About Us Page */}
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
       <Route
