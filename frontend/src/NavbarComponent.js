@@ -22,13 +22,21 @@ const NavbarComponent = () => {
         <Navbar.Brand as={Link} to="/">Stock App</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="ms-auto">
-            <Nav.Link as={Link} to="/">Home</Nav.Link> {/* Added Home Link */}
-            <Nav.Link as={Link} to="/about">About Us</Nav.Link> {/* Added About Us Link */}
+          <Nav className="ms-auto align-items-center">
+            <Nav.Link as={Link} to="/">Home</Nav.Link> {/* Home Link */}
+            <Nav.Link as={Link} to="/about">About Us</Nav.Link> {/* About Us Link */}
             {user ? (
               <>
                 <Nav.Link as={Link} to="/dashboard">Dashboard</Nav.Link>
                 <Nav.Link as={Link} to="/robinhood-bot">Robinhood Bot</Nav.Link>
+                
+                {/* Display user email if available */}
+                {user.email && (
+                  <Nav.Item className="text-light mx-2">
+                    {user.email}
+                  </Nav.Item>
+                )}
+                
                 <Button variant="outline-light" onClick={handleLogout} className="ms-2">Logout</Button>
               </>
             ) : (

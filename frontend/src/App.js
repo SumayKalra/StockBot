@@ -8,7 +8,7 @@ import NavbarComponent from './NavbarComponent';
 import RobinhoodBot from './RobinhoodBot'; // Import the Robinhood Bot component
 import Home from './Home'; // Import Home Page
 import AboutUs from './AboutUs'; // Import About Us Page
-import { AuthContext } from './AuthContext'; // Removed AuthProvider import
+import { AuthContext } from './AuthContext'; 
 import { Spinner, Container } from 'react-bootstrap';
 
 function App() {
@@ -21,7 +21,7 @@ function App() {
 }
 
 const AuthWrapper = () => {
-  const { loading, user } = React.useContext(AuthContext); // Destructure loading and user
+  const { loading, user } = React.useContext(AuthContext);
 
   if (loading) {
     // Show spinner while loading authentication state
