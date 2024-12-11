@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Container, Card, Form, Button, Alert, Spinner, Table, Row, Col } from "react-bootstrap";
 
 const validateAndFetchTrades = async (username, password, totpSecret) => {
@@ -15,17 +15,13 @@ const validateAndFetchTrades = async (username, password, totpSecret) => {
   }
 };
 
-const autoLoginAndFetchTrades = async (username) => {
+const getUserCredentials = async (username) => {
   try {
-    const response = await fetch("http://localhost:8000/auto_login_and_fetch_trades", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
+    const response = await fetch(`http://localhost:8000/get_credentials?username=${encodeURIComponent(username)}`);
     return await response.json();
   } catch (error) {
-    console.error("Error auto-logging in:", error);
-    return { isValid: false, error: "An error occurred during auto-login." };
+    console.error("Error fetching saved credentials:", error);
+    return { error: "An error occurred." };
   }
 };
 
@@ -43,41 +39,6 @@ const RobinhoodBot = () => {
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    const handleAutoLogin = async () => {
-      if (!username) {
-        // No username stored, cannot auto login
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const result = await autoLoginAndFetchTrades(username);
-
-        if (result.isValid) {
-          setIsLoggedIn(true);
-          setTrades(result.trades || []);
-          setBalance(parseFloat(result.balance || 0));
-          setBuyingPower(parseFloat(result.buying_power || 0));
-          setCash(parseFloat(result.cash || 0));
-          setRecommendations(result.recommendations || []);
-        } else {
-          console.error("Auto-login failed:", result.error);
-          // If auto-login fails, user will have to log in manually
-        }
-      } catch (err) {
-        console.error("Error during auto-login:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Attempt auto login only if we have a stored username
-    if (username) {
-      handleAutoLogin();
-    }
-  }, [username]);
-
   const handleLogin = async () => {
     setLoading(true);
     setError("");
@@ -92,7 +53,6 @@ const RobinhoodBot = () => {
         setBuyingPower(parseFloat(result.buying_power || 0));
         setCash(parseFloat(result.cash || 0));
         setRecommendations(result.recommendations || []);
-        // Store username locally so we can attempt auto-login next time
         localStorage.setItem("rh_username", username);
       } else {
         setError(result.error || "Invalid credentials. Please try again.");
@@ -101,6 +61,23 @@ const RobinhoodBot = () => {
       setError("An error occurred while logging in.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadCredentials = async () => {
+    if (!username) {
+      setError("Please enter a username before loading saved credentials.");
+      return;
+    }
+
+    setError("");
+    const creds = await getUserCredentials(username);
+    if (creds.error) {
+      setError(creds.error);
+    } else {
+      // Fill in the password and totpSecret from stored creds
+      setPassword(creds.password || "");
+      setTotpSecret(creds.totp_secret || "");
     }
   };
 
@@ -114,7 +91,7 @@ const RobinhoodBot = () => {
         <Card className="shadow-sm p-4">
           <h1>Robinhood Bot</h1>
           <p>
-            <strong>About Robinhood Bot:</strong> The Robinhood Bot is your automated companion for managing stock trading. This application integrates seamlessly with your Robinhood account to streamline your trading experience. Once logged in, the bot provides:
+            <strong>About Robinhood Bot:</strong> The Robinhood Bot is your automated companion ...
           </p>
           <ul>
             <li>Comprehensive access to your trading history, account balance, and buying power.</li>
@@ -122,7 +99,7 @@ const RobinhoodBot = () => {
             <li>An optional automated trading feature to execute trades on your behalf.</li>
           </ul>
           <p>
-            Designed for both novice and experienced traders, this bot simplifies trading and helps you make informed decisions efficiently. The automation feature employs predefined strategies to capitalize on market opportunities in real time.
+            Designed for both novice and experienced traders, this bot simplifies trading ...
           </p>
           <p
             style={{
@@ -135,10 +112,10 @@ const RobinhoodBot = () => {
               boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
             }}
           >
-            <strong>DISCLAIMER:</strong> By entering your Robinhood credentials, you agree to give the Robinhood Bot secure access to your account data for trading purposes. <u>We do not store your credentials in plaintext.</u> Instead, they are encrypted and securely managed. However, automated trading comes with inherent financial risks, and results may vary depending on market conditions. Use this application with caution, as the developers are not liable for any financial losses you may incur while using the bot.
+            <strong>DISCLAIMER:</strong> By entering your Robinhood credentials ...
           </p>
           <p>
-            It is strongly recommended that you monitor your trades regularly and only use funds that you are willing to risk. Please read our full terms and conditions for detailed information.
+            It is strongly recommended that you monitor your trades regularly ...
           </p>
           <Form>
             <Form.Group controlId="username" className="mb-3">
@@ -169,12 +146,18 @@ const RobinhoodBot = () => {
               />
             </Form.Group>
             {error && <Alert variant="danger">{error}</Alert>}
+
             <div className="d-flex align-items-center mt-3">
-              <Button onClick={handleLogin} disabled={loading}>
+              <Button onClick={handleLogin} disabled={loading} className="me-2">
                 {loading ? <Spinner animation="border" size="sm" /> : "Login"}
               </Button>
+              <Button variant="secondary" onClick={handleLoadCredentials} disabled={loading}>
+                Load Saved Credentials
+              </Button>
               {loading && (
-                <p className="mb-0 ms-3 text-muted">Retrieving your Robinhood data... If you've logged in before, this may take just a few seconds. Please hold tight!</p>
+                <p className="mb-0 ms-3 text-muted">
+                  Retrieving your Robinhood data... If you've logged in before, this may take a few seconds.
+                </p>
               )}
             </div>
           </Form>
@@ -194,7 +177,6 @@ const RobinhoodBot = () => {
         </Card>
       ) : (
         <Row>
-          {/* Left Column: Past Trades */}
           <Col md={8}>
             <Card className="shadow-sm p-4">
               <h3>Past Trades</h3>
@@ -223,7 +205,6 @@ const RobinhoodBot = () => {
             </Card>
           </Col>
 
-          {/* Right Column: Summary and Actions */}
           <Col md={4}>
             <Card className="shadow-sm p-4 mb-4">
               <h4>Balance and Profit</h4>
@@ -235,8 +216,7 @@ const RobinhoodBot = () => {
             <Card className="shadow-sm p-4 mb-4">
               <h4>Activate Stock Bot</h4>
               <p>
-                Activating the Stock Bot allows automatic trading based on predefined strategies. Please use at your
-                own risk. Performance is not guaranteed.
+                Activating the Stock Bot allows automatic trading based on predefined strategies. ...
               </p>
               <Button
                 variant={botActive ? "danger" : "success"}

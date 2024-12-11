@@ -57,18 +57,15 @@ app.add_middleware(
 @app.post("/validate_and_fetch_trades")
 async def validate_and_fetch_trades(creds: Credentials):
     """
-    Validate the provided credentials and fetch trades. If valid, store the credentials
-    in Firestore (encrypted in a real scenario). If invalid, prompt the user again.
+    Validate Robinhood credentials and fetch trades. If valid, store credentials in Firestore.
     """
     try:
-        # Generate TOTP code
-        totp = pyotp.TOTP(creds.totp_secret).now()
-
-        response = r.login(creds.username, creds.password, mfa_code=totp, store_session=False)
+        totp_code = pyotp.TOTP(creds.totp_secret).now()
+        response = r.login(creds.username, creds.password, mfa_code=totp_code, store_session=False)
         if not response.get("access_token"):
             return {"isValid": False, "error": "Invalid credentials. Please try again."}
 
-        # If credentials are valid, store them in Firestore
+        # Save credentials
         users_ref = db.collection("users").document(creds.username)
         users_ref.set({
             "username": creds.username,
@@ -77,22 +74,20 @@ async def validate_and_fetch_trades(creds: Credentials):
             "last_login": datetime.utcnow().isoformat(),
         }, merge=True)
 
-        # Fetch account details
+        # Fetch trades
         account_profile = r.profiles.load_account_profile()
         portfolio_cash = float(account_profile.get("portfolio_cash", 0))
         buying_power = float(account_profile.get("buying_power", 0))
         cash_available = float(account_profile.get("cash", 0))
 
-        # Fetch stock orders
         orders = r.orders.get_all_stock_orders()
         trades = []
         for order in orders:
             if order.get("state") == "filled":
-                instrument_url = order.get("instrument")
-                instrument_details = requests.get(instrument_url).json()
+                instr = requests.get(order["instrument"]).json()
                 trades.append({
-                    "symbol": instrument_details.get("symbol"),
-                    "side": order.get("side"),
+                    "symbol": instr.get("symbol"),
+                    "side": order["side"],
                     "quantity": float(order.get("quantity", 0)),
                     "price": float(order.get("average_price", 0)),
                     "date": order.get("last_transaction_at"),
@@ -100,7 +95,7 @@ async def validate_and_fetch_trades(creds: Credentials):
 
         trades = sorted(trades, key=lambda x: x["date"], reverse=True)
 
-        # Recommendations (Placeholder)
+        # Recommendations (placeholder)
         recommended_trades = [
             {"symbol": "AAPL", "reason": "Strong quarterly earnings growth."},
             {"symbol": "GOOGL", "reason": "Positive technical indicators."},
@@ -121,82 +116,24 @@ async def validate_and_fetch_trades(creds: Credentials):
         logger.error(f"Error during login and fetch: {e}")
         return {"isValid": False, "error": str(e)}
 
-
-@app.post("/auto_login_and_fetch_trades")
-async def auto_login_and_fetch_trades(user: UsernameModel):
+@app.get("/get_credentials")
+def get_credentials(username: str = Query(...)):
     """
-    Automatically log in using stored credentials (username, password, and TOTP secret) 
-    in Firestore and fetch trades, account balances, and recommendations.
+    Retrieve stored credentials for the given username, if any.
     """
-    try:
-        username = user.username.strip()
-        if not username:
-            return {"isValid": False, "error": "No username provided for auto login."}
+    doc_ref = db.collection("users").document(username).get()
+    if not doc_ref.exists:
+        return {"error": "No credentials found for this user."}
 
-        # Attempt to retrieve stored credentials for this user
-        doc_ref = db.collection("users").document(username).get()
-        if not doc_ref.exists:
-            return {"isValid": False, "error": "No stored credentials found for this user."}
+    data = doc_ref.to_dict()
+    if "username" not in data or "password" not in data or "totp_secret" not in data:
+        return {"error": "Incomplete credentials stored."}
 
-        stored_credentials = doc_ref.to_dict()
-        if "username" not in stored_credentials or "password" not in stored_credentials or "totp_secret" not in stored_credentials:
-            return {"isValid": False, "error": "Incomplete stored credentials."}
-
-        password = stored_credentials["password"]
-        totp_secret = stored_credentials["totp_secret"]
-
-        # Generate TOTP code
-        totp = pyotp.TOTP(totp_secret).now()
-
-        # Login to Robinhood
-        response = r.login(username, password, mfa_code=totp, store_session=False)
-        if not response.get("access_token"):
-            return {"isValid": False, "error": "Stored credentials invalid. Please log in manually."}
-
-        # Fetch account details
-        account_profile = r.profiles.load_account_profile()
-        portfolio_cash = float(account_profile.get("portfolio_cash", 0))
-        buying_power = float(account_profile.get("buying_power", 0))
-        cash_available = float(account_profile.get("cash", 0))
-
-        # Fetch stock orders
-        orders = r.orders.get_all_stock_orders()
-        trades = []
-        for order in orders:
-            if order.get("state") == "filled":
-                instrument_url = order.get("instrument")
-                instrument_details = requests.get(instrument_url).json()
-                trades.append({
-                    "symbol": instrument_details.get("symbol"),
-                    "side": order.get("side"),
-                    "quantity": float(order.get("quantity", 0)),
-                    "price": float(order.get("average_price", 0)),
-                    "date": order.get("last_transaction_at"),
-                })
-
-        trades = sorted(trades, key=lambda x: x["date"], reverse=True)
-
-        # Recommendations (Placeholder)
-        recommended_trades = [
-            {"symbol": "AAPL", "reason": "Strong quarterly earnings growth."},
-            {"symbol": "GOOGL", "reason": "Positive technical indicators."},
-            {"symbol": "TSLA", "reason": "Increasing demand in EV market."},
-        ]
-
-        return {
-            "isValid": True,
-            "message": "Auto-login successful. Trades fetched.",
-            "trades": trades,
-            "balance": portfolio_cash,
-            "buying_power": buying_power,
-            "cash": cash_available,
-            "recommendations": recommended_trades,
-        }
-
-    except Exception as e:
-        logger.error(f"Error during auto-login: {e}")
-        return {"isValid": False, "error": str(e)}
-
+    return {
+        "username": data["username"],
+        "password": data["password"],
+        "totp_secret": data["totp_secret"]
+    }
 
 # --- Middleware ---
 @app.middleware("http")
