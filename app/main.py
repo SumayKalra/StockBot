@@ -15,6 +15,8 @@ from pydantic import BaseModel
 import time
 import pyotp
 from fastapi.background import BackgroundTasks
+from playwright.sync_api import sync_playwright #lightweight library for rendering webpages
+from dateutil import parser
 
 
 class Credentials(BaseModel):
@@ -441,6 +443,89 @@ def get_american_bull_info(user_email: str = Depends(get_current_user)):
         data = doc.to_dict()
         bull_data.append(data)
     return {"american_bull_info": bull_data}
+
+@app.get("/nancy_stock_stalker")
+def get_nancey_stock_stalker(user_email: str = Depends(get_current_user)):
+    with sync_playwright() as p:
+        #launch headless browser
+        browser = p.chromium.launch(headless = True)
+        page = browser.new_page()
+
+        #navigate to webpage
+        url = "https://www.quiverquant.com/congresstrading/politician/Nancy%20Pelosi-P000197"
+        page.goto(url)
+    
+        #wait for table to load
+        page.wait_for_selector("table#tradeTable tbody")
+
+        #get page contents
+        html = page.content()
+
+        #parse html
+        soup = BeautifulSoup(html, "html.parser")
+
+        #find trade table
+        tradeTable = soup.find("table", {"id" : "tradeTable"})
+        tbody = tradeTable.find("tbody")
+        rows = tbody.find_all("tr")
+        trades = []  #holds trade data
+
+       # iterate through each row
+        for row in rows:
+            cells = row.find_all('td')
+            if len(cells) < 6:  # table has 6 columns
+                continue
+            
+            # work through first cell to isolate ticker and company name
+            ticker_div = cells[0].find("div", class_="flex-column")
+            if ticker_div:
+                ticker_tag = ticker_div.find("a", href=True)
+                company_span = ticker_div.find_all("span")
+                ticker = ticker_tag.get_text(strip=True) if ticker_tag else "N/A"
+                company = company_span[0].get_text(strip=True) if len(company_span) > 0 else "N/A"
+            else:
+                ticker = "N/A"
+                company = "N/A"
+            
+            # second cell: transaction type and amount
+            transaction_div = cells[1].find("a", class_="flex-column")
+            if transaction_div:
+                transaction_type_tag = transaction_div.find("strong")
+                amount_span = transaction_div.find("span")
+                transaction_type = transaction_type_tag.get_text(strip=True) if transaction_type_tag else "N/A"
+                transaction_amount = amount_span.get_text(strip=True) if amount_span else "N/A"
+            else:
+                transaction_type = "N/A"
+                transaction_amount = "N/A"
+
+            # parse file date and trade date
+            dayFiled = cells[2].get_text(strip=True)
+            dayFiled = parser.parse(dayFiled) if dayFiled else None
+
+            dayTraded = cells[3].get_text(strip=True)
+            dayTraded = parser.parse(dayTraded) if dayTraded else None
+
+            # calculate delay between stock traded and trade reported
+            daysDiff = (dayFiled - dayTraded).days if (dayFiled and dayTraded) else None
+
+            # get % change (column index 5)
+            gainOrLoss = cells[5].get_text(strip=True)
+            gainOrLoss = gainOrLoss if gainOrLoss != "-" else "N/A"
+
+            # store gathered data in dictionary
+            trades.append({
+                'ticker': ticker,
+                'company': company,
+                'transaction_type': transaction_type,
+                'transaction_amount': transaction_amount,
+                'file_date': dayFiled.isoformat() if dayFiled else None,
+                'trade_date': dayTraded.isoformat() if dayTraded else None,
+                'delay_in_days': daysDiff,
+                'gain_or_loss': gainOrLoss
+            })
+        
+        browser.close()
+    return {"nancy_trades" : trades}
 
 @app.post("/delete_all_stocks")
 def delete_all_stocks(user_email: str = Depends(get_current_user)):
