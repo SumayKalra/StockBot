@@ -10,6 +10,7 @@ const Dashboard = () => {
   const [stockList, setStockList] = useState([]);
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
+  const [nancyStockData, setNancyStockData] = useState([]);
   const [newStock, setNewStock] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,12 +36,16 @@ const Dashboard = () => {
 
   const fetchAnalysisData = async () => {
     try {
-      const [analysisRes, bullRes] = await Promise.all([
+      const [analysisRes, bullRes, nancyRes] = await Promise.all([
         axiosInstance.get('/stock_analysis'),
-        axiosInstance.get('/american_bull_info')
+        axiosInstance.get('/american_bull_info'),
+        axiosInstance.get('/nancy_stock_stalker')
       ]);
+      console.log('Nancy Stock Stalker API Response:', nancyRes.data); // Debugging line
       setStockAnalysisData(analysisRes.data.stock_analysis);
       setAmericanBullData(bullRes.data.american_bull_info);
+      setNancyStockData(nancyRes.data.nancy_trades);
+      console.log('nancyStockData:', nancyRes.data.trades);  //debugging
     } catch (err) {
       console.error('Error fetching analysis data:', err);
       setError('Failed to fetch analysis data.');
@@ -126,6 +131,14 @@ const Dashboard = () => {
     } finally {
       setShowDeleteAllModal(false);
     }
+
+    
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'; // Handle missing dates
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Intl.DateTimeFormat('en-US', options).format(new Date(dateString));
   };
 
   const handleShowDeleteAllModal = () => setShowDeleteAllModal(true);
@@ -276,6 +289,52 @@ const Dashboard = () => {
                     </tbody>
                   </Table>
                 )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+      <Row className="mt-5">
+          <Col>
+            <h2>Nancy Stock Stalker</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {/* Scrollable container for table */}
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  <Table striped bordered hover responsive>
+                    <thead className="table-dark" style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', zIndex: 10}}>
+                      <tr>
+                        <th>Stock Name</th>
+                        <th>Transaction Type</th>
+                        <th>Transaction Amount</th>
+                        <th>File Date</th>
+                        <th>Trade Date</th>
+                        <th>Delay (Days)</th>
+                        <th>% Change</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(!nancyStockData || nancyStockData.length === 0) ? (
+                        <tr>
+                          <td colSpan="7" className="text-center">No Nancy Stock Stalker data available.</td>
+                        </tr>
+                      ) : (
+                        nancyStockData.map((item, index) => (
+                          <tr key={index}>
+                            <td>{item['ticker'] || 'N/A'}</td>
+                            <td>{item['transaction_type'] || 'N/A'}</td>
+                            <td>{item['transaction_amount'] || 'N/A'}</td>
+                            {/* Format the file_date and trade_date */}
+                            <td>{formatDate(item['file_date'])}</td>
+                            <td>{formatDate(item['trade_date'])}</td>
+                            <td>{item['delay_in_days'] || 'N/A'}</td>
+                            <td>{item['gain_or_loss'] || 'N/A'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </Table>
+                </div>
               </Card.Body>
             </Card>
           </Col>
