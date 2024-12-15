@@ -116,11 +116,58 @@ async def validate_and_fetch_trades(creds: Credentials):
         logger.error(f"Error during login and fetch: {e}")
         return {"isValid": False, "error": str(e)}
 
+
+
+# --- Middleware ---
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    logger.info(f"Response status: {response.status_code}")
+    return response
+
+# --- Helpers ---
+def get_current_user(authorization: Optional[str] = Header(None)) -> str:
+    if not authorization:
+        logger.error("No Authorization header provided.")
+        raise HTTPException(status_code=401, detail="No authorization header provided.")
+
+    token_parts = authorization.split(" ")
+    if len(token_parts) != 2 or token_parts[0].lower() != "bearer":
+        logger.error(f"Invalid Authorization format: {authorization}")
+        raise HTTPException(status_code=401, detail="Invalid authorization format.")
+
+    id_token = token_parts[1]
+    try:
+        decoded_token = firebase_auth.verify_id_token(id_token)
+        email = decoded_token.get("email")
+        logger.info(f"Token verified. User email: {email}")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token: email not found.")
+
+        # Ensure Firestore user document exists
+        user_ref = db.collection("users").document(email)
+        if not user_ref.get().exists:
+            user_ref.set({
+                "stocks": [],
+                "stock_analysis": {},
+                "american_bull_info": {}
+            })
+            logger.info(f"Created new user document for {email}")
+
+        return email
+    except Exception as e:
+        logger.error(f"Error verifying Firebase token: {e}")
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+
 @app.get("/get_credentials")
-def get_credentials(username: str = Query(...)):
+def get_credentials(username: str = Query(...), user_email: str = Depends(get_current_user)):
     """
-    Retrieve stored credentials for the given username, if any.
+    Retrieve stored credentials for the given username, only if it matches the logged-in user's email.
     """
+    if username.strip().lower() != user_email.strip().lower():
+        raise HTTPException(status_code=403, detail="The entered username does not match the logged-in user's email.")
+
     doc_ref = db.collection("users").document(username).get()
     if not doc_ref.exists:
         return {"error": "No credentials found for this user."}
@@ -135,38 +182,10 @@ def get_credentials(username: str = Query(...)):
         "totp_secret": data["totp_secret"]
     }
 
-# --- Middleware ---
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.info(f"Request: {request.method} {request.url}")
-    response = await call_next(request)
-    logger.info(f"Response status: {response.status_code}")
-    return response
-
-# --- Helpers ---
-def get_current_user(authorization: Optional[str] = Header(None)) -> str:
-    if not authorization:
-        raise HTTPException(status_code=401, detail="No authorization header provided.")
-    token_parts = authorization.split(" ")
-    if len(token_parts) != 2 or token_parts[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid authorization format.")
-    id_token = token_parts[1]
-    try:
-        decoded_token = firebase_auth.verify_id_token(id_token)
-        email = decoded_token.get("email")
-        if not email:
-            raise HTTPException(status_code=401, detail="Invalid token: email not found.")
-        user_ref = db.collection("users").document(email)
-        if not user_ref.get().exists:
-            user_ref.set({
-                "stocks": [],
-                "stock_analysis": {},
-                "american_bull_info": {}
-            })
-        return email
-    except Exception as e:
-        logger.error(f"Error verifying Firebase token: {e}")
-        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+# Endpoint to get the current user's email
+@app.get("/api/current_user")
+def get_current_user_endpoint(current_user: str = Depends(get_current_user)):
+    return {"email": current_user}
 
 def recommend_data() -> List[Dict]:
     """Scrape recommended stock data from American Bulls website."""
