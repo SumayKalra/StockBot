@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
   const [nancyStockData, setNancyStockData] = useState([]);
+  const [barchartOpinionData, setBarchartOpinionData] = useState([]);
   const [newStock, setNewStock] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -36,16 +37,16 @@ const Dashboard = () => {
 
   const fetchAnalysisData = async () => {
     try {
-      const [analysisRes, bullRes, nancyRes] = await Promise.all([
+      const [analysisRes, bullRes, nancyRes, barchartRes] = await Promise.all([
         axiosInstance.get('/stock_analysis'),
         axiosInstance.get('/american_bull_info'),
-        axiosInstance.get('/nancy_stock_stalker')
+        axiosInstance.get('/nancy_stock_stalker'),
+        axiosInstance.get('/barchart_opinion_info')
       ]);
-      console.log('Nancy Stock Stalker API Response:', nancyRes.data); // Debugging line
       setStockAnalysisData(analysisRes.data.stock_analysis);
       setAmericanBullData(bullRes.data.american_bull_info);
       setNancyStockData(nancyRes.data.nancy_trades);
-      console.log('nancyStockData:', nancyRes.data.trades);  //debugging
+      setBarchartOpinionData(barchartRes.data.barchart_opinion_info);
     } catch (err) {
       console.error('Error fetching analysis data:', err);
       setError('Failed to fetch analysis data.');
@@ -284,6 +285,42 @@ const Dashboard = () => {
                           <td>{item['Price']}</td>
                           <td>{item['Change%']}</td>
                           <td>{item['Value']}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      
+        <Row className="mt-5">
+          <Col>
+            <h2>Barchart Opinion Info</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {barchartOpinionData.length === 0 ? (
+                  <p className="text-muted">No Barchart Opinion data available.</p>
+                ) : (
+                  <Table striped bordered hover responsive>
+                    <thead className="table-dark">
+                      <tr>
+                        <th>Stock Name</th>
+                        <th>Opinion</th>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Change%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {barchartOpinionData.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item['ticker']}</td>
+                          <td>{item['opinion']}</td>
+                          <td>{item['date']}</td>
+                          <td>{item['lastPrice']}</td>
+                          <td>{item['percentChange']}</td>
                         </tr>
                       ))}
                     </tbody>
