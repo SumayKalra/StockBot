@@ -6,3 +6,5 @@ yfinance
 openpyxl
 python-dotenv
 fastapi[all]
+robin_stocks
+playwright
