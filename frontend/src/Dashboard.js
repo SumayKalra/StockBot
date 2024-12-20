@@ -12,6 +12,7 @@ const Dashboard = () => {
   const [americanBullData, setAmericanBullData] = useState([]);
   const [nancyStockData, setNancyStockData] = useState([]);
   const [barchartOpinionData, setBarchartOpinionData] = useState([]);
+  const [congressTradesData, setCongressTrades] = useState([]);
   const [newStock, setNewStock] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,16 +38,18 @@ const Dashboard = () => {
 
   const fetchAnalysisData = async () => {
     try {
-      const [analysisRes, bullRes, nancyRes, barchartRes] = await Promise.all([
+      const [analysisRes, bullRes, nancyRes, barchartRes, congressTradesRes] = await Promise.all([
         axiosInstance.get('/stock_analysis'),
         axiosInstance.get('/american_bull_info'),
         axiosInstance.get('/nancy_stock_stalker'),
-        axiosInstance.get('/barchart_opinion_info')
+        axiosInstance.get('/barchart_opinion_info'),
+        axiosInstance.get('/congress_trades')
       ]);
       setStockAnalysisData(analysisRes.data.stock_analysis);
       setAmericanBullData(bullRes.data.american_bull_info);
       setNancyStockData(nancyRes.data.nancy_trades);
       setBarchartOpinionData(barchartRes.data.barchart_opinion_info);
+      setCongressTrades(congressTradesRes.data.congress_trades);
     } catch (err) {
       console.error('Error fetching analysis data:', err);
       setError('Failed to fetch analysis data.');
@@ -331,6 +334,68 @@ const Dashboard = () => {
           </Col>
         </Row>
 
+        <Row className="mt-5">
+  <Col>
+    <h2>Congress Trades</h2>
+    <Card className="mb-4 shadow-sm">
+      <Card.Body>
+        {!congressTradesData || congressTradesData.length === 0 ? (
+          <p className="text-muted">No Congress Trades data available.</p>
+        ) : (
+          <Table striped bordered hover responsive>
+            <thead
+              className="table-dark"
+              style={{
+                position: 'sticky',
+                top: 0,
+                backgroundColor: '#343a40',
+                zIndex: 10
+              }}
+            >
+              <tr>
+                <th>Stock</th>
+                <th>Representative</th>
+                <th>Stock Name</th>
+                <th>Transaction Type</th>
+                <th>Transaction Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {congressTradesData.map((entry, index) => 
+                Object.entries(entry).map(([key, trades]) => {
+                  // Check if trades is an array
+                  if (Array.isArray(trades)) {
+                    return trades.map((trade, tradeIndex) => (
+                      <tr key={`${index}-${key}-${tradeIndex}`}>
+                        <td>{trade.ticker || 'N/A'}</td>
+                        <td>{trade.name || 'N/A'}</td>
+                        <td>{trade.action || 'N/A'}</td>
+                        <td>{trade.date || 'N/A'}</td>
+                        <td>{trade.amount || 'N/A'}</td>
+                      </tr>
+                    ))
+                  } else {
+                    // Handle the case where trades is a single object
+                    return (
+                      <tr key={`${index}-${key}`}>
+                        <td>{trades?.ticker || 'N/A'}</td>
+                        <td>{trades?.name || 'N/A'}</td>
+                        <td>{trades?.action || 'N/A'}</td>
+                        <td>{trades?.date || 'N/A'}</td>
+                        <td>{trades?.amount || 'N/A'}</td>
+                      </tr>
+                    )
+                  }
+                })
+              )}
+            </tbody>
+          </Table>
+        )}
+      </Card.Body>
+    </Card>
+  </Col>
+</Row>
+      
       <Row className="mt-5">
           <Col>
             <h2>Nancy Stock Stalker</h2>

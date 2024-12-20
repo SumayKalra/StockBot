@@ -172,3 +172,55 @@ def scrape_barchart_opinion(ticker : str) -> dict:
         return clean_data
     else:
         return {}
+    
+def scrape_congress_trades(ticker: str)->list:
+    '''Fetches congress trading data from quiverquant.com based on the ticker entered by user'''
+    #construct url
+    url = f"https://www.quiverquant.com/stock/{ticker}/government/"
+
+    #get html data
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)  #set headless=False for debugging
+        page = browser.new_page()
+        page.goto(url)
+        page.wait_for_load_state('networkidle')  #wait until network is idle
+        page.wait_for_timeout(3000)  #wait for 3 seconds
+        html = page.content()
+        browser.close()
+
+    #parse the html for target data
+    soup = BeautifulSoup(html, "html.parser")
+    main_div = soup.select_one("div.content-item.item-overview.item-gov.content-item-active")
+    if main_div:
+        rows = main_div.select("table tbody tr")  #get all table rows
+    else:
+        rows = []
+    
+    #holds trade data
+    trades = []
+
+    #loop through all rows and extract data
+    for row in rows:
+        #check if this is a valid trade row by looking for the flex-column class
+        if row.select_one("a.flex-column"):
+            cells = row.find_all("td")
+            if len(cells) >= 3:
+                name = cells[0].find("span").get_text(strip=True) if cells[0].find("span") else "N/A"
+                action = cells[1].find("span", class_="positive") or cells[1].find("span", class_="sale")
+                action = action.get_text(strip=True) if action else "N/A"
+                amount_span = cells[1].find("span", class_="font-12")
+                amount = amount_span.get_text(strip=True) if amount_span else "N/A"
+                date = cells[2].get_text(strip=True)
+
+                trades.append({
+                    "ticker": ticker,
+                    "name": name,
+                    "action": action,
+                    "amount": amount,
+                    "date": date
+                })
+
+    if trades:
+        return trades
+    else:
+        return []

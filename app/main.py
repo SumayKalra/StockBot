@@ -17,8 +17,7 @@ import pyotp
 from fastapi.background import BackgroundTasks
 from playwright.sync_api import sync_playwright #lightweight library for rendering webpages
 from dateutil import parser
-from scrapers import scrape_nancy_stock
-from scrapers import scrape_barchart_opinion
+import scrapers
 
 
 class Credentials(BaseModel):
@@ -447,7 +446,7 @@ def get_american_bull_info(user_email: str = Depends(get_current_user)):
 
 @app.get("/nancy_stock_stalker")
 def get_nancy_stock_stalker(user_email: str = Depends(get_current_user)):
-    results = scrape_nancy_stock()              #scraper subroutine
+    results = scrapers.scrape_nancy_stock()              #scraper subroutine
     return {"nancy_trades" : results}
 
 @app.get("/barchart_opinion_info")
@@ -460,9 +459,23 @@ def get_barchart_opinion_info(user_email: str = Depends(get_current_user)):
 
     results = []
     for ticker in stocks:
-        result = scrape_barchart_opinion(ticker)  #scraper subroutine
+        result = scrapers.scrape_barchart_opinion(ticker)  #scraper subroutine
         results.append(result) 
     return {"barchart_opinion_info" : results}
+
+@app.get("/congress_trades")
+def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
+
+    results = []
+    for ticker in stocks:
+        result = scrapers.scrape_congress_trades(ticker)  #scraper subroutine
+        results.append(result) 
+    return {"congress_trades" : results}
 
 @app.post("/delete_all_stocks")
 def delete_all_stocks(user_email: str = Depends(get_current_user)):
