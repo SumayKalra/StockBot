@@ -414,7 +414,7 @@ const Dashboard = () => {
                                       maxHeight: '200px',
                                       overflowY: 'auto',
                                       backgroundColor: 'inherit',
-                                      border: '1px solid #007bff',
+                                      border: '1px solid #007bff', //change to #ddd to remove blue border
                                     }}
                                   >
                                     <Table
