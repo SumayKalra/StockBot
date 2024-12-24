@@ -18,6 +18,18 @@ const Dashboard = () => {
   const [message, setMessage] = useState('');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false); // State for Modal
 
+  // ADD: for toggling "More Data" in the Congress Trades table
+  const [expandedRows, setExpandedRows] = useState([]);
+
+  // ADD: helper function to toggle rows in the Congress Trades table
+  const handleToggleRow = (rowIndex) => {
+    if (expandedRows.includes(rowIndex)) {
+      setExpandedRows(expandedRows.filter((idx) => idx !== rowIndex));
+    } else {
+      setExpandedRows([...expandedRows, rowIndex]);
+    }
+  };
+
   const axiosInstance = axios.create({
     baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000', // Fallback to localhost
     headers: {
@@ -132,8 +144,6 @@ const Dashboard = () => {
     } finally {
       setShowDeleteAllModal(false);
     }
-
-    
   };
 
   const formatDate = (dateString) => {
@@ -339,50 +349,102 @@ const Dashboard = () => {
                 {!congressTradesData || congressTradesData.length === 0 ? (
                   <p className="text-muted">No Congress Trades data available.</p>
                 ) : (
-                  <Table striped bordered hover responsive>
+                  <Table striped bordered hover responsive style={{ tableLayout: 'fixed', width: '100%' }}>
                     <thead
                       className="table-dark"
                       style={{
                         position: 'sticky',
                         top: 0,
                         backgroundColor: '#343a40',
-                        zIndex: 10
+                        zIndex: 10,
                       }}
                     >
                       <tr>
-                        <th>Stock</th>
-                        <th>Representative</th>
-                        <th>Stock Name</th>
-                        <th>Transaction Type</th>
-                        <th>Transaction Amount</th>
+                        <th style={{ width: '16.6%' }}>Stock</th>
+                        <th style={{ width: '16.6%' }}>Representative</th>
+                        <th style={{ width: '16.6%' }}>Action</th>
+                        <th style={{ width: '16.6%' }}>Transaction Amount</th>
+                        <th style={{ width: '16.6%' }}>Date</th>
+                        <th style={{ width: '17%' }}>More Data</th>
                       </tr>
                     </thead>
                     <tbody>
                       {congressTradesData.map((tradesArray, index) => {
-                        // Optional: console-log to confirm what's really in tradesArray
-                        console.log('Index:', index, 'Trades:', tradesArray);
-
-                        // If you truly want to handle empty arrays as "no data," keep this check;
-                        // otherwise, remove it if you know there's always at least one trade.
                         if (!Array.isArray(tradesArray) || tradesArray.length === 0) {
                           return (
                             <tr key={index}>
-                              <td colSpan={5}>No data for this stock</td>
+                              <td colSpan={6}>No data for this stock</td>
                             </tr>
                           );
                         }
 
-                        // Take the most recent trade from the array
                         const mostRecentTrade = tradesArray[0] || {};
+                        const isExpanded = expandedRows.includes(index);
 
                         return (
-                          <tr key={index}>
-                            <td>{mostRecentTrade.ticker ?? 'N/A'}</td>
-                            <td>{mostRecentTrade.name ?? 'N/A'}</td>
-                            <td>{mostRecentTrade.action ?? 'N/A'}</td>
-                            <td>{mostRecentTrade.date ?? 'N/A'}</td>
-                            <td>{mostRecentTrade.amount ?? 'N/A'}</td>
-                          </tr>
+                          <React.Fragment key={index}>
+                            {/* Main Row */}
+                            <tr>
+                              <td>{mostRecentTrade.ticker ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.name ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.action ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.amount ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.date ?? 'N/A'}</td>
+                              <td>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleToggleRow(index)}
+                                  style={{
+                                    backgroundColor: isExpanded ? '#007bff' : '#28a745',
+                                    borderColor: isExpanded ? '#007bff' : '#28a745',
+                                    color: '#fff',
+                                  }}
+                                >
+                                  {isExpanded ? 'Hide More' : 'Show More'}
+                                </Button>
+                              </td>
+                            </tr>
+
+                            {/* Expanded Row */}
+                            {isExpanded && tradesArray.length > 1 && (
+                              <tr>
+                                <td colSpan={6} style={{ padding: 0 }}>
+                                  <div
+                                    style={{
+                                      maxHeight: '200px',
+                                      overflowY: 'auto',
+                                      backgroundColor: 'inherit',
+                                      border: '1px solid #007bff',
+                                    }}
+                                  >
+                                    <Table
+                                      size="sm"
+                                      bordered
+                                      responsive
+                                      style={{
+                                        margin: 0,
+                                        tableLayout: 'fixed',
+                                        width: '100%',
+                                      }}
+                                    >
+                                      {/* Removed <thead> */}
+                                      <tbody>
+                                        {tradesArray.slice(1).map((trade, i) => (
+                                          <tr key={`${index}-${i}`}>
+                                            <td style={{ width: '16.7%' }}>{trade.ticker ?? 'N/A'}</td>
+                                            <td style={{ width: '16.85%' }}>{trade.name ?? 'N/A'}</td>
+                                            <td style={{ width: '16.85%' }}>{trade.action ?? 'N/A'}</td>
+                                            <td style={{ width: '16.9%' }}>{trade.amount ?? 'N/A'}</td>
+                                            <td style={{ width: '32.7%' }}>{trade.date ?? 'N/A'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </Table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>
