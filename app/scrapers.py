@@ -1,91 +1,13 @@
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright 
+from playwright.async_api import Playwright, async_playwright
+import asyncio
 from dateutil import parser
 from datetime import datetime
 import datetime
 import json
-
-def scrape_nancy_stock()->dict:
-    with sync_playwright() as p:
-        #launch headless browser
-        browser = p.chromium.launch(headless = True)
-        page = browser.new_page()
-
-        #navigate to webpage
-        url = "https://www.quiverquant.com/congresstrading/politician/Nancy%20Pelosi-P000197"
-        page.goto(url)
-    
-        #wait for table to load
-        page.wait_for_selector("table#tradeTable tbody")
-
-        #get page contents
-        html = page.content()
-
-        #parse html
-        soup = BeautifulSoup(html, "html.parser")
-
-        #find trade table
-        tradeTable = soup.find("table", {"id" : "tradeTable"})
-        tbody = tradeTable.find("tbody")
-        rows = tbody.find_all("tr")
-        trades = []  #holds trade data
-
-       # iterate through each row
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) < 6:  # table has 6 columns
-                continue
-            
-            # work through first cell to isolate ticker and company name
-            ticker_div = cells[0].find("div", class_="flex-column")
-            if ticker_div:
-                ticker_tag = ticker_div.find("a", href=True)
-                company_span = ticker_div.find_all("span")
-                ticker = ticker_tag.get_text(strip=True) if ticker_tag else "N/A"
-                company = company_span[0].get_text(strip=True) if len(company_span) > 0 else "N/A"
-            else:
-                ticker = "N/A"
-                company = "N/A"
-            
-            # second cell: transaction type and amount
-            transaction_div = cells[1].find("a", class_="flex-column")
-            if transaction_div:
-                transaction_type_tag = transaction_div.find("strong")
-                amount_span = transaction_div.find("span")
-                transaction_type = transaction_type_tag.get_text(strip=True) if transaction_type_tag else "N/A"
-                transaction_amount = amount_span.get_text(strip=True) if amount_span else "N/A"
-            else:
-                transaction_type = "N/A"
-                transaction_amount = "N/A"
-
-            # parse file date and trade date
-            dayFiled = cells[2].get_text(strip=True)
-            dayFiled = parser.parse(dayFiled) if dayFiled else None
-
-            dayTraded = cells[3].get_text(strip=True)
-            dayTraded = parser.parse(dayTraded) if dayTraded else None
-
-            # calculate delay between stock traded and trade reported
-            daysDiff = (dayFiled - dayTraded).days if (dayFiled and dayTraded) else None
-
-            # get % change (column index 5)
-            gainOrLoss = cells[5].get_text(strip=True)
-            gainOrLoss = gainOrLoss if gainOrLoss != "-" else "N/A"
-
-            # store gathered data in dictionary
-            trades.append({
-                'ticker': ticker,
-                'company': company,
-                'transaction_type': transaction_type,
-                'transaction_amount': transaction_amount,
-                'file_date': dayFiled.isoformat() if dayFiled else None,
-                'trade_date': dayTraded.isoformat() if dayTraded else None,
-                'delay_in_days': daysDiff,
-                'gain_or_loss': gainOrLoss
-            })
-        
-        browser.close()
-    return trades
+import random
+import os
 
 def scrape_barchart_opinion(ticker : str) -> dict:
     '''fetches stock info from barchart based on the ticker entered by user'''
@@ -173,54 +95,131 @@ def scrape_barchart_opinion(ticker : str) -> dict:
     else:
         return {}
     
-def scrape_congress_trades(ticker: str)->list:
+async def scrape_congress_trades(stocks: list) -> list:
     '''Fetches congress trading data from quiverquant.com based on the ticker entered by user'''
-    #construct url
-    url = f"https://www.quiverquant.com/stock/{ticker}/government/"
 
-    #get html data
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)  #set headless=False for debugging
-        page = browser.new_page()
-        page.goto(url)
-        page.wait_for_load_state('networkidle')  #wait until network is idle
-        page.wait_for_timeout(3000)  #wait for 3 seconds
-        html = page.content()
-        browser.close()
+    logfile = open("logs.txt", "w")
 
-    #parse the html for target data
-    soup = BeautifulSoup(html, "html.parser")
-    main_div = soup.select_one("div.content-item.item-overview.item-gov.content-item-active")
-    if main_div:
-        rows = main_div.select("table tbody tr")  #get all table rows
+    #vary the browser context so that the user agent is randomized or rotated
+    USER_AGENTS = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64; rv:110.0) Gecko/20100101 Firefox/110.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.5993.88 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.2 Safari/605.1.15",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:115.0) Gecko/20100101 Firefox/115.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0",
+        "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
+    ]
+    chosen_user_agent = random.choice(USER_AGENTS)
+
+    #initialize playwright
+    playwright: Playwright = await async_playwright().start()  # Start Playwright explicitly
+    browser = await playwright.chromium.launch(headless=True)  # Launch the browser
+
+    #add in ways to retain and reuse session cookies so subsequent requests look more like a regular user session
+    #use storage_state to store/reuse cookies and other session data.
+    #if "browser-session.json" exists, use it. if not, a new session context is created.
+    if os.path.exists("browser-session.json"):
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            storage_state="browser-session.json",  #load existing session state
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)}
+        )
     else:
-        rows = []
-    
-    #holds trade data
-    trades = []
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)}
+        )
 
-    #loop through all rows and extract data
-    for row in rows:
-        #check if this is a valid trade row by looking for the flex-column class
-        if row.select_one("a.flex-column"):
-            cells = row.find_all("td")
-            if len(cells) >= 3:
-                name = cells[0].find("span").get_text(strip=True) if cells[0].find("span") else "N/A"
-                action = cells[1].find("span", class_="positive") or cells[1].find("span", class_="sale")
-                action = action.get_text(strip=True) if action else "N/A"
-                amount_span = cells[1].find("span", class_="font-12")
-                amount = amount_span.get_text(strip=True) if amount_span else "N/A"
-                date = cells[2].get_text(strip=True)
+    page = await context.new_page()
 
-                trades.append({
-                    "ticker": ticker,
-                    "name": name,
-                    "action": action,
-                    "amount": amount,
-                    "date": date
-                })
+    allData = []
+    for ticker in stocks:
+        #construct url
+        url = f"https://www.quiverquant.com/stock/{ticker}/government/"
 
-    if trades:
-        return trades
-    else:
-        return []
+        #handle errors better
+        try:
+            await page.goto(url)
+            await page.wait_for_load_state('networkidle')
+            await asyncio.sleep(random.uniform(2, 6))  #adjust this if needed
+            html = await page.content()
+        except Exception as e:
+            #log the error and continue to the next ticker
+            logfile.write(f"ERROR visiting {url} for {ticker} due to {str(e)}\n")
+            print(f"ERROR visiting {url} for {ticker} due to {str(e)}")
+            allData.append({"ERROR": f"Could not fetch data for {ticker} due to {str(e)}"})
+            continue
+
+        if html:
+            print(ticker, "HTML CHECK: OK")
+        else:
+            print(ticker, "HTML CHECK: FAILED")
+
+        #parse the html for target data
+        soup = BeautifulSoup(html, "html.parser")
+        main_div = soup.select_one("div.content-item.item-overview.item-gov.content-item-active")
+        if main_div:
+            print(ticker, "ROWS CHECK: OK")
+            rows = main_div.select("table tbody tr")
+        else:
+            print(ticker, "ROWS CHECK: FAILED")
+            logfile.write(ticker)
+            logfile.write("\n")
+            logfile.write(soup.prettify())
+            logfile.write("\n\n\n")
+            rows = []
+
+        #holds trade data for one stock
+        trades = []
+
+        loop = 0
+        #loop through all rows and extract data
+        for row in rows:
+            loop += 1
+            #check if this is a valid trade row by looking for the flex-column class
+            if row.select_one("a.flex-column"):
+                if loop == 1:
+                    print(ticker, "FLEX COLUMN CHECK: OK")
+                cells = row.find_all("td")
+                if len(cells) >= 3:
+                    if loop == 1:
+                        print(ticker, "DATA CHECK: OK")
+                    name = cells[0].find("span").get_text(strip=True) if cells[0].find("span") else "N/A"
+                    action = cells[1].find("span", class_="positive") or cells[1].find("span", class_="sale")
+                    action = action.get_text(strip=True) if action else "N/A"
+                    amount_span = cells[1].find("span", class_="font-12")
+                    amount = amount_span.get_text(strip=True) if amount_span else "N/A"
+                    date = cells[2].get_text(strip=True)
+
+                    trades.append({
+                        "ticker": ticker,
+                        "name": name,
+                        "action": action,
+                        "amount": amount,
+                        "date": date
+                    })
+                else:
+                    print(ticker, "DATA CHECK: FAILED")
+            else:
+                print(ticker, "FLEX COLUMN CHECK: FAILED")
+
+        if trades:
+            print(ticker, "FINAL CHECK: OK")
+            allData.append(trades)
+        else:
+            print(ticker, "FINAL CHECK: FAILED")
+            allData.append({"ERROR": f"No data found for {ticker}."})
+
+    #save the session state for future use
+    await context.storage_state(path="browser-session.json")
+
+    #clean up browser and playwright instances
+    await browser.close()
+    await playwright.stop()
+
+    logfile.close()
+    return allData

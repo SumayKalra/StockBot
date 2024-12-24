@@ -10,7 +10,6 @@ const Dashboard = () => {
   const [stockList, setStockList] = useState([]);
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
-  const [nancyStockData, setNancyStockData] = useState([]);
   const [barchartOpinionData, setBarchartOpinionData] = useState([]);
   const [congressTradesData, setCongressTrades] = useState([]);
   const [newStock, setNewStock] = useState('');
@@ -38,16 +37,14 @@ const Dashboard = () => {
 
   const fetchAnalysisData = async () => {
     try {
-      const [analysisRes, bullRes, nancyRes, barchartRes, congressTradesRes] = await Promise.all([
+      const [analysisRes, bullRes, barchartRes, congressTradesRes] = await Promise.all([
         axiosInstance.get('/stock_analysis'),
         axiosInstance.get('/american_bull_info'),
-        axiosInstance.get('/nancy_stock_stalker'),
         axiosInstance.get('/barchart_opinion_info'),
         axiosInstance.get('/congress_trades')
       ]);
       setStockAnalysisData(analysisRes.data.stock_analysis);
       setAmericanBullData(bullRes.data.american_bull_info);
-      setNancyStockData(nancyRes.data.nancy_trades);
       setBarchartOpinionData(barchartRes.data.barchart_opinion_info);
       setCongressTrades(congressTradesRes.data.congress_trades);
     } catch (err) {
@@ -335,108 +332,62 @@ const Dashboard = () => {
         </Row>
 
         <Row className="mt-5">
-  <Col>
-    <h2>Congress Trades</h2>
-    <Card className="mb-4 shadow-sm">
-      <Card.Body>
-        {!congressTradesData || congressTradesData.length === 0 ? (
-          <p className="text-muted">No Congress Trades data available.</p>
-        ) : (
-          <Table striped bordered hover responsive>
-            <thead
-              className="table-dark"
-              style={{
-                position: 'sticky',
-                top: 0,
-                backgroundColor: '#343a40',
-                zIndex: 10
-              }}
-            >
-              <tr>
-                <th>Stock</th>
-                <th>Representative</th>
-                <th>Stock Name</th>
-                <th>Transaction Type</th>
-                <th>Transaction Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {congressTradesData.map((entry, index) => 
-                Object.entries(entry).map(([key, trades]) => {
-                  // Check if trades is an array
-                  if (Array.isArray(trades)) {
-                    return trades.map((trade, tradeIndex) => (
-                      <tr key={`${index}-${key}-${tradeIndex}`}>
-                        <td>{trade.ticker || 'N/A'}</td>
-                        <td>{trade.name || 'N/A'}</td>
-                        <td>{trade.action || 'N/A'}</td>
-                        <td>{trade.date || 'N/A'}</td>
-                        <td>{trade.amount || 'N/A'}</td>
-                      </tr>
-                    ))
-                  } else {
-                    // Handle the case where trades is a single object
-                    return (
-                      <tr key={`${index}-${key}`}>
-                        <td>{trades?.ticker || 'N/A'}</td>
-                        <td>{trades?.name || 'N/A'}</td>
-                        <td>{trades?.action || 'N/A'}</td>
-                        <td>{trades?.date || 'N/A'}</td>
-                        <td>{trades?.amount || 'N/A'}</td>
-                      </tr>
-                    )
-                  }
-                })
-              )}
-            </tbody>
-          </Table>
-        )}
-      </Card.Body>
-    </Card>
-  </Col>
-</Row>
-      
-      <Row className="mt-5">
           <Col>
-            <h2>Nancy Stock Stalker</h2>
+            <h2>Congress Trades</h2>
             <Card className="mb-4 shadow-sm">
               <Card.Body>
-                {/* Scrollable container for table */}
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {!congressTradesData || congressTradesData.length === 0 ? (
+                  <p className="text-muted">No Congress Trades data available.</p>
+                ) : (
                   <Table striped bordered hover responsive>
-                    <thead className="table-dark" style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', zIndex: 10}}>
+                    <thead
+                      className="table-dark"
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: '#343a40',
+                        zIndex: 10
+                      }}
+                    >
                       <tr>
+                        <th>Stock</th>
+                        <th>Representative</th>
                         <th>Stock Name</th>
                         <th>Transaction Type</th>
                         <th>Transaction Amount</th>
-                        <th>File Date</th>
-                        <th>Trade Date</th>
-                        <th>Delay (Days)</th>
-                        <th>% Change</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(!nancyStockData || nancyStockData.length === 0) ? (
-                        <tr>
-                          <td colSpan="7" className="text-center">No Nancy Stock Stalker data available.</td>
-                        </tr>
-                      ) : (
-                        nancyStockData.map((item, index) => (
+                      {congressTradesData.map((tradesArray, index) => {
+                        // Optional: console-log to confirm what's really in tradesArray
+                        console.log('Index:', index, 'Trades:', tradesArray);
+
+                        // If you truly want to handle empty arrays as "no data," keep this check;
+                        // otherwise, remove it if you know there's always at least one trade.
+                        if (!Array.isArray(tradesArray) || tradesArray.length === 0) {
+                          return (
+                            <tr key={index}>
+                              <td colSpan={5}>No data for this stock</td>
+                            </tr>
+                          );
+                        }
+
+                        // Take the most recent trade from the array
+                        const mostRecentTrade = tradesArray[0] || {};
+
+                        return (
                           <tr key={index}>
-                            <td>{item['ticker'] || 'N/A'}</td>
-                            <td>{item['transaction_type'] || 'N/A'}</td>
-                            <td>{item['transaction_amount'] || 'N/A'}</td>
-                            {/* Format the file_date and trade_date */}
-                            <td>{formatDate(item['file_date'])}</td>
-                            <td>{formatDate(item['trade_date'])}</td>
-                            <td>{item['delay_in_days'] || 'N/A'}</td>
-                            <td>{item['gain_or_loss'] || 'N/A'}</td>
+                            <td>{mostRecentTrade.ticker ?? 'N/A'}</td>
+                            <td>{mostRecentTrade.name ?? 'N/A'}</td>
+                            <td>{mostRecentTrade.action ?? 'N/A'}</td>
+                            <td>{mostRecentTrade.date ?? 'N/A'}</td>
+                            <td>{mostRecentTrade.amount ?? 'N/A'}</td>
                           </tr>
-                        ))
-                      )}
+                        );
+                      })}
                     </tbody>
                   </Table>
-                </div>
+                )}
               </Card.Body>
             </Card>
           </Col>

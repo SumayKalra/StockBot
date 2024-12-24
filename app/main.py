@@ -444,11 +444,6 @@ def get_american_bull_info(user_email: str = Depends(get_current_user)):
         bull_data.append(data)
     return {"american_bull_info": bull_data}
 
-@app.get("/nancy_stock_stalker")
-def get_nancy_stock_stalker(user_email: str = Depends(get_current_user)):
-    results = scrapers.scrape_nancy_stock()              #scraper subroutine
-    return {"nancy_trades" : results}
-
 @app.get("/barchart_opinion_info")
 def get_barchart_opinion_info(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)
@@ -464,17 +459,14 @@ def get_barchart_opinion_info(user_email: str = Depends(get_current_user)):
     return {"barchart_opinion_info" : results}
 
 @app.get("/congress_trades")
-def get_congress_trades(user_email: str = Depends(get_current_user)):
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)
     user_data = user_ref.get().to_dict()
     stocks = user_data.get("stocks", [])
     if not stocks:
         return {"error" : "No stocks to analyze."}
 
-    results = []
-    for ticker in stocks:
-        result = scrapers.scrape_congress_trades(ticker)  #scraper subroutine
-        results.append(result) 
+    results = await scrapers.scrape_congress_trades(stocks)
     return {"congress_trades" : results}
 
 @app.post("/delete_all_stocks")
