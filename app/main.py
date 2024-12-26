@@ -469,6 +469,28 @@ async def get_congress_trades(user_email: str = Depends(get_current_user)):
     results = await scrapers.scrape_congress_trades(stocks)
     return {"congress_trades" : results}
 
+@app.get("/market_beat_info")
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
+
+    results = await scrapers.scrape_market_beat(stocks)
+    return {"market_beat_info" : results}
+
+@app.get("/insider_trades")
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
+
+    results = await scrapers.scrape_insider_trades(stocks)
+    return {"insider_trades" : results}
+
 @app.post("/delete_all_stocks")
 def delete_all_stocks(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)

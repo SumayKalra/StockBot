@@ -1,18 +1,39 @@
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright 
 from playwright.async_api import Playwright, async_playwright
+from playwright_stealth import stealth_async
 import asyncio
 from dateutil import parser
 from datetime import datetime
-import datetime
 import json
 import random
 import os
 
+def get_random_user_agent(file_path="user-agents.json"):
+    """Loads user agents from a JSON file and returns a random user agent"""
+    with open(file_path, "r") as file:
+        user_agents = json.load(file)
+    return random.choice(user_agents)
+
+def calculate_delta_days(dayFiled, dayTraded):
+    """Calculate the difference in days between two dates"""
+    try:
+        if not dayFiled or not dayTraded:
+            raise ValueError(f"Missing date(s): dayFiled={dayFiled}, dayTraded={dayTraded}")
+        
+        # Normalize the date format
+        filed_date = datetime.strptime(dayFiled.split(" ")[0], "%Y-%m-%d")  # Extract only the date part
+        traded_date = datetime.strptime(dayTraded, "%Y-%m-%d")
+        delta = (filed_date - traded_date).days
+        return delta
+    except Exception as e:
+        print(f"Error calculating deltaDays: {e}")
+        return None  # Return None if dates are invalid or calculation fails
+
 def scrape_barchart_opinion(ticker : str) -> dict:
     '''fetches stock info from barchart based on the ticker entered by user'''
     #mark current data
-    date = datetime.datetime.now().strftime("%B %d, %Y")
+    date = datetime.now().strftime("%B %d, %Y")
 
     #construct url
     url = f"https://www.barchart.com/stocks/quotes/{ticker}/opinion"
@@ -97,23 +118,8 @@ def scrape_barchart_opinion(ticker : str) -> dict:
     
 async def scrape_congress_trades(stocks: list) -> list:
     '''Fetches congress trading data from quiverquant.com based on the ticker entered by user'''
-
-    logfile = open("logs.txt", "w")
-
     #vary the browser context so that the user agent is randomized or rotated
-    USER_AGENTS = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64; rv:110.0) Gecko/20100101 Firefox/110.0",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.5993.88 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.2 Safari/605.1.15",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:115.0) Gecko/20100101 Firefox/115.0",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:117.0) Gecko/20100101 Firefox/117.0",
-        "Mozilla/5.0 (Linux; Android 13; SM-G990B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1"
-    ]
-    chosen_user_agent = random.choice(USER_AGENTS)
+    chosen_user_agent = get_random_user_agent()
 
     #initialize playwright
     playwright: Playwright = await async_playwright().start()  # Start Playwright explicitly
@@ -149,45 +155,27 @@ async def scrape_congress_trades(stocks: list) -> list:
             html = await page.content()
         except Exception as e:
             #log the error and continue to the next ticker
-            logfile.write(f"ERROR visiting {url} for {ticker} due to {str(e)}\n")
             print(f"ERROR visiting {url} for {ticker} due to {str(e)}")
             allData.append({"ERROR": f"Could not fetch data for {ticker} due to {str(e)}"})
             continue
-
-        if html:
-            print(ticker, "HTML CHECK: OK")
-        else:
-            print(ticker, "HTML CHECK: FAILED")
 
         #parse the html for target data
         soup = BeautifulSoup(html, "html.parser")
         main_div = soup.select_one("div.content-item.item-overview.item-gov.content-item-active")
         if main_div:
-            print(ticker, "ROWS CHECK: OK")
             rows = main_div.select("table tbody tr")
         else:
-            print(ticker, "ROWS CHECK: FAILED")
-            logfile.write(ticker)
-            logfile.write("\n")
-            logfile.write(soup.prettify())
-            logfile.write("\n\n\n")
             rows = []
 
         #holds trade data for one stock
         trades = []
 
-        loop = 0
         #loop through all rows and extract data
         for row in rows:
-            loop += 1
             #check if this is a valid trade row by looking for the flex-column class
             if row.select_one("a.flex-column"):
-                if loop == 1:
-                    print(ticker, "FLEX COLUMN CHECK: OK")
                 cells = row.find_all("td")
                 if len(cells) >= 3:
-                    if loop == 1:
-                        print(ticker, "DATA CHECK: OK")
                     name = cells[0].find("span").get_text(strip=True) if cells[0].find("span") else "N/A"
                     action = cells[1].find("span", class_="positive") or cells[1].find("span", class_="sale")
                     action = action.get_text(strip=True) if action else "N/A"
@@ -202,16 +190,10 @@ async def scrape_congress_trades(stocks: list) -> list:
                         "amount": amount,
                         "date": date
                     })
-                else:
-                    print(ticker, "DATA CHECK: FAILED")
-            else:
-                print(ticker, "FLEX COLUMN CHECK: FAILED")
 
         if trades:
-            print(ticker, "FINAL CHECK: OK")
             allData.append(trades)
         else:
-            print(ticker, "FINAL CHECK: FAILED")
             allData.append({"ERROR": f"No data found for {ticker}."})
 
     #save the session state for future use
@@ -220,6 +202,173 @@ async def scrape_congress_trades(stocks: list) -> list:
     #clean up browser and playwright instances
     await browser.close()
     await playwright.stop()
-
-    logfile.close()
     return allData
+
+async def scrape_market_beat(stocks: list) -> list:
+    """Fetches stock data from the specified website based on the ticker entered by user"""
+    # Get a random user agent
+    chosen_user_agent = get_random_user_agent()
+
+    playwright: Playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=True)
+
+    if os.path.exists("browser-session.json"):
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            storage_state="browser-session.json",
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)}
+        )
+    else:
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)}
+        )
+    
+    page = await context.new_page()
+    all_data = []
+
+    for ticker in stocks:
+        url = f"https://www.marketbeat.com/stocks/NASDAQ/{ticker}/"
+        try:
+            await page.goto(url)
+            await page.wait_for_load_state('networkidle')
+            await asyncio.sleep(random.uniform(2, 6))
+            html = await page.content()
+        except Exception as e:
+            all_data.append({"ERROR": f"Could not fetch data for {ticker} due to {str(e)}"})
+            continue
+
+        soup = BeautifulSoup(html, "html.parser")
+        faq_div = soup.select_one("div#marketRankAccordion")
+
+        if faq_div:
+            extracted_data = {}
+            items = faq_div.select("div.faq-item-wrapper")
+
+            for item in items:
+                section = item.select_one("span.mr-title").get_text(strip=True)
+                score = item.select_one("span.mr-score").get_text(strip=True)
+                label = item.select_one("span.mr-stat-label").get_text(strip=True)
+                value = item.select_one("span.mr-stat").get_text(strip=True)
+
+                if section in [
+                    "Analyst's Opinion",
+                    "Earnings and Valuation",
+                    "Short Interest",
+                    "Dividend",
+                    "Sustainability and ESG",
+                    "News and Social Media",
+                    "Company Ownership",
+                ]:
+                    extracted_data[section] = {
+                        "score": score,
+                        "label": label,
+                        "value": value,
+                    }
+
+            all_data.append({ticker: extracted_data})
+        else:
+            all_data.append({ticker: "No data found"})
+
+    await context.storage_state(path="browser-session.json")
+    await browser.close()
+    await playwright.stop()
+    return all_data
+
+async def scrape_insider_trades(stocks: list) -> list:
+    """Fetches stock data from the specified website based on the ticker entered by user"""
+    # Get a random user agent
+    chosen_user_agent = get_random_user_agent()
+
+    # Start Playwright
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(headless=True)
+
+    if os.path.exists("browser-session.json"):
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            storage_state="browser-session.json",
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)},
+            bypass_csp=True  # Bypass Content Security Policy
+        )
+    else:
+        context = await browser.new_context(
+            user_agent=chosen_user_agent,
+            viewport={"width": random.randint(800, 1920), "height": random.randint(400, 1080)},
+            bypass_csp=True
+        )
+    
+    # Apply stealth to the browser context
+    page = await context.new_page()
+    await stealth_async(page)
+
+    all_data = []
+
+    for ticker in stocks:
+        url = f"http://openinsider.com/screener?s={ticker}&o=&pl=&ph=&ll=&lh=&fd=730&fdr=&td=0&tdr=&fdlyl=&fdlyh=&daysago=&xp=1&xs=1&vl=&vh=&ocl=&och=&sic1=-1&sicl=100&sich=9999&grp=0&nfl=&nfh=&nil=&nih=&nol=&noh=&v2l=&v2h=&oc2l=&oc2h=&sortcol=0&cnt=200&page=1"
+        try:
+            await page.goto(url)
+            await page.wait_for_load_state('networkidle')
+
+            html = await page.content()
+        except Exception as e:
+            all_data.append({"ERROR": f"Could not fetch data for {ticker} due to {str(e)}"})
+            continue
+
+        soup = BeautifulSoup(html, "html.parser")
+        rows = soup.select("table tbody tr")
+
+        trades = []
+        for row in rows:
+            cells = row.select("td")
+
+            # Check if the row has enough columns to match the desired data
+            if len(cells) < 12:  # Adjust this number based on the minimum columns you expect
+                continue
+
+            dayFiled = cells[1].select_one("a").get_text(strip=True) if cells[1].select_one("a") else None
+            dayTraded = cells[2].get_text(strip=True) if cells[2] else None
+            insiderName = cells[4].select_one("a").get_text(strip=True) if cells[4].select_one("a") else None
+            title = cells[5].get_text(strip=True) if cells[5] else None
+            action = cells[6].get_text(strip=True) if cells[6] else None
+            price = cells[7].get_text(strip=True) if cells[7] else None
+            quantity = cells[8].get_text(strip=True) if cells[8] else None
+            sharesOwned = cells[9].get_text(strip=True) if cells[9] else None
+            deltaOwn = cells[10].get_text(strip=True) if cells[10] else None
+            value = cells[11].get_text(strip=True) if cells[11] else None
+            deltaDays = calculate_delta_days(dayFiled, dayTraded)
+
+            # Store the extracted data in a dictionary
+            extracted_data = {
+                "dayFiled": dayFiled,
+                "dayTraded": dayTraded,
+                "insiderName": insiderName,
+                "title": title,
+                "action": action,
+                "price": price,
+                "quantity": quantity,
+                "sharesOwned": sharesOwned,
+                "deltaOwn": deltaOwn,
+                "value": value,
+                "deltaDays" : deltaDays
+            }
+
+            if extracted_data["dayFiled"] is not None:
+                trades.append(extracted_data)
+
+        all_data.append({ticker: trades})
+
+    await context.storage_state(path="browser-session.json")
+    await browser.close()
+    await playwright.stop()
+    return all_data
+
+if __name__ == "__main__":
+    stocks = ["AAPL", "TSLA", "AMZN", "GOOG"]
+    results = asyncio.run(scrape_insider_trades(stocks))
+    
+    # Save the results to a JSON file
+    with open("insider_trades_results.json", "w") as file:
+        json.dump(results, file, indent=4)
+    
+    print("Results have been saved to 'insider_trades_results.json'")
