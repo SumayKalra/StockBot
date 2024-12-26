@@ -17,6 +17,7 @@ import pyotp
 from fastapi.background import BackgroundTasks
 from playwright.sync_api import sync_playwright #lightweight library for rendering webpages
 from dateutil import parser
+import scrapers
 
 
 class Credentials(BaseModel):
@@ -451,7 +452,6 @@ def get_stock_analysis(user_email: str = Depends(get_current_user)):
         analysis_data.append(data)
     return {"stock_analysis": analysis_data}
 
-
 @app.get("/american_bull_info")
 def get_american_bull_info(user_email: str = Depends(get_current_user)):
     user_ref = db.collection("users").document(user_email)
@@ -463,88 +463,52 @@ def get_american_bull_info(user_email: str = Depends(get_current_user)):
         bull_data.append(data)
     return {"american_bull_info": bull_data}
 
-@app.get("/nancy_stock_stalker")
-def get_nancey_stock_stalker(user_email: str = Depends(get_current_user)):
-    with sync_playwright() as p:
-        #launch headless browser
-        browser = p.chromium.launch(headless = True)
-        page = browser.new_page()
+@app.get("/barchart_opinion_info")
+def get_barchart_opinion_info(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
 
-        #navigate to webpage
-        url = "https://www.quiverquant.com/congresstrading/politician/Nancy%20Pelosi-P000197"
-        page.goto(url)
-    
-        #wait for table to load
-        page.wait_for_selector("table#tradeTable tbody")
+    results = []
+    for ticker in stocks:
+        result = scrapers.scrape_barchart_opinion(ticker)  #scraper subroutine
+        results.append(result) 
+    return {"barchart_opinion_info" : results}
 
-        #get page contents
-        html = page.content()
+@app.get("/congress_trades")
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
 
-        #parse html
-        soup = BeautifulSoup(html, "html.parser")
+    results = await scrapers.scrape_congress_trades(stocks)
+    return {"congress_trades" : results}
 
-        #find trade table
-        tradeTable = soup.find("table", {"id" : "tradeTable"})
-        tbody = tradeTable.find("tbody")
-        rows = tbody.find_all("tr")
-        trades = []  #holds trade data
+@app.get("/market_beat_info")
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
 
-       # iterate through each row
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) < 6:  # table has 6 columns
-                continue
-            
-            # work through first cell to isolate ticker and company name
-            ticker_div = cells[0].find("div", class_="flex-column")
-            if ticker_div:
-                ticker_tag = ticker_div.find("a", href=True)
-                company_span = ticker_div.find_all("span")
-                ticker = ticker_tag.get_text(strip=True) if ticker_tag else "N/A"
-                company = company_span[0].get_text(strip=True) if len(company_span) > 0 else "N/A"
-            else:
-                ticker = "N/A"
-                company = "N/A"
-            
-            # second cell: transaction type and amount
-            transaction_div = cells[1].find("a", class_="flex-column")
-            if transaction_div:
-                transaction_type_tag = transaction_div.find("strong")
-                amount_span = transaction_div.find("span")
-                transaction_type = transaction_type_tag.get_text(strip=True) if transaction_type_tag else "N/A"
-                transaction_amount = amount_span.get_text(strip=True) if amount_span else "N/A"
-            else:
-                transaction_type = "N/A"
-                transaction_amount = "N/A"
+    results = await scrapers.scrape_market_beat(stocks)
+    return {"market_beat_info" : results}
 
-            # parse file date and trade date
-            dayFiled = cells[2].get_text(strip=True)
-            dayFiled = parser.parse(dayFiled) if dayFiled else None
+@app.get("/insider_trades")
+async def get_congress_trades(user_email: str = Depends(get_current_user)):
+    user_ref = db.collection("users").document(user_email)
+    user_data = user_ref.get().to_dict()
+    stocks = user_data.get("stocks", [])
+    if not stocks:
+        return {"error" : "No stocks to analyze."}
 
-            dayTraded = cells[3].get_text(strip=True)
-            dayTraded = parser.parse(dayTraded) if dayTraded else None
-
-            # calculate delay between stock traded and trade reported
-            daysDiff = (dayFiled - dayTraded).days if (dayFiled and dayTraded) else None
-
-            # get % change (column index 5)
-            gainOrLoss = cells[5].get_text(strip=True)
-            gainOrLoss = gainOrLoss if gainOrLoss != "-" else "N/A"
-
-            # store gathered data in dictionary
-            trades.append({
-                'ticker': ticker,
-                'company': company,
-                'transaction_type': transaction_type,
-                'transaction_amount': transaction_amount,
-                'file_date': dayFiled.isoformat() if dayFiled else None,
-                'trade_date': dayTraded.isoformat() if dayTraded else None,
-                'delay_in_days': daysDiff,
-                'gain_or_loss': gainOrLoss
-            })
-        
-        browser.close()
-    return {"nancy_trades" : trades}
+    results = await scrapers.scrape_insider_trades(stocks)
+    return {"insider_trades" : results}
 
 @app.post("/delete_all_stocks")
 def delete_all_stocks(user_email: str = Depends(get_current_user)):

@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: stockbot-backend
+    volumes:
+      - ./app:/app  # Mount the local app folder to the container
+    ports:
+      - "8000:8000"  # Expose backend on localhost:8000
+    environment:
+      # Add any environment variables if needed, e.g.:
+      # - ENV_VAR_NAME=value
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: stockbot-frontend
+    volumes:
+      - ./frontend:/usr/src/app  # Mount the local frontend folder to the container
+    ports:
+      - "3000:3000"  # Expose frontend on localhost:3000

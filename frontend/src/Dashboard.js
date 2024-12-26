@@ -10,12 +10,36 @@ const Dashboard = () => {
   const [stockList, setStockList] = useState([]);
   const [stockAnalysisData, setStockAnalysisData] = useState([]);
   const [americanBullData, setAmericanBullData] = useState([]);
-  const [nancyStockData, setNancyStockData] = useState([]);
+  const [barchartOpinionData, setBarchartOpinionData] = useState([]);
+  const [marketBeatData, setMarketBeatData] = useState([]);
+  const [congressTradesData, setCongressTrades] = useState([]);
+  const [insiderTradesData, setInsiderTrades] = useState([]);
   const [newStock, setNewStock] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false); // State for Modal
+
+  // Independent state for expanding rows in each table
+  const [expandedCongressRows, setExpandedCongressRows] = useState([]);
+  const [expandedInsiderRows, setExpandedInsiderRows] = useState([]);
+
+  // Toggle handlers for each table
+  const handleToggleCongressRow = (rowIndex) => {
+    if (expandedCongressRows.includes(rowIndex)) {
+      setExpandedCongressRows(expandedCongressRows.filter((idx) => idx !== rowIndex));
+    } else {
+      setExpandedCongressRows([...expandedCongressRows, rowIndex]);
+    }
+  };
+
+  const handleToggleInsiderRow = (rowIndex) => {
+    if (expandedInsiderRows.includes(rowIndex)) {
+      setExpandedInsiderRows(expandedInsiderRows.filter((idx) => idx !== rowIndex));
+    } else {
+      setExpandedInsiderRows([...expandedInsiderRows, rowIndex]);
+    }
+  };
 
   const axiosInstance = axios.create({
     baseURL: process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000', // Fallback to localhost
@@ -36,16 +60,20 @@ const Dashboard = () => {
 
   const fetchAnalysisData = async () => {
     try {
-      const [analysisRes, bullRes, nancyRes] = await Promise.all([
+      const [analysisRes, bullRes, barchartRes, marketBeatRes, congressTradesRes, insiderTradesRes] = await Promise.all([
         axiosInstance.get('/stock_analysis'),
         axiosInstance.get('/american_bull_info'),
-        axiosInstance.get('/nancy_stock_stalker')
+        axiosInstance.get('/barchart_opinion_info'),
+        axiosInstance.get('/market_beat_info'),
+        axiosInstance.get('/congress_trades'),
+        axiosInstance.get('/insider_trades')
       ]);
-      console.log('Nancy Stock Stalker API Response:', nancyRes.data); // Debugging line
       setStockAnalysisData(analysisRes.data.stock_analysis);
       setAmericanBullData(bullRes.data.american_bull_info);
-      setNancyStockData(nancyRes.data.nancy_trades);
-      console.log('nancyStockData:', nancyRes.data.trades);  //debugging
+      setBarchartOpinionData(barchartRes.data.barchart_opinion_info);
+      setMarketBeatData(marketBeatRes.data.market_beat_info);
+      setCongressTrades(congressTradesRes.data.congress_trades);
+      setInsiderTrades(insiderTradesRes.data.insider_trades);
     } catch (err) {
       console.error('Error fetching analysis data:', err);
       setError('Failed to fetch analysis data.');
@@ -131,8 +159,6 @@ const Dashboard = () => {
     } finally {
       setShowDeleteAllModal(false);
     }
-
-    
   };
 
   const formatDate = (dateString) => {
@@ -293,48 +319,399 @@ const Dashboard = () => {
             </Card>
           </Col>
         </Row>
-
-      <Row className="mt-5">
+      
+        <Row className="mt-5">
           <Col>
-            <h2>Nancy Stock Stalker</h2>
+            <h2>Barchart Opinion Info</h2>
             <Card className="mb-4 shadow-sm">
               <Card.Body>
-                {/* Scrollable container for table */}
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {barchartOpinionData.length === 0 ? (
+                  <p className="text-muted">No Barchart Opinion data available.</p>
+                ) : (
                   <Table striped bordered hover responsive>
-                    <thead className="table-dark" style={{ position: 'sticky', top: 0, backgroundColor: '#343a40', zIndex: 10}}>
+                    <thead className="table-dark">
                       <tr>
                         <th>Stock Name</th>
-                        <th>Transaction Type</th>
-                        <th>Transaction Amount</th>
-                        <th>File Date</th>
-                        <th>Trade Date</th>
-                        <th>Delay (Days)</th>
-                        <th>% Change</th>
+                        <th>Opinion</th>
+                        <th>Date</th>
+                        <th>Price</th>
+                        <th>Change%</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {(!nancyStockData || nancyStockData.length === 0) ? (
-                        <tr>
-                          <td colSpan="7" className="text-center">No Nancy Stock Stalker data available.</td>
+                      {barchartOpinionData.map((item, index) => (
+                        <tr key={index}>
+                          <td>{item['ticker']}</td>
+                          <td>{item['opinion']}</td>
+                          <td>{item['date']}</td>
+                          <td>{item['lastPrice']}</td>
+                          <td>{item['percentChange']}</td>
                         </tr>
-                      ) : (
-                        nancyStockData.map((item, index) => (
-                          <tr key={index}>
-                            <td>{item['ticker'] || 'N/A'}</td>
-                            <td>{item['transaction_type'] || 'N/A'}</td>
-                            <td>{item['transaction_amount'] || 'N/A'}</td>
-                            {/* Format the file_date and trade_date */}
-                            <td>{formatDate(item['file_date'])}</td>
-                            <td>{formatDate(item['trade_date'])}</td>
-                            <td>{item['delay_in_days'] || 'N/A'}</td>
-                            <td>{item['gain_or_loss'] || 'N/A'}</td>
-                          </tr>
-                        ))
-                      )}
+                      ))}
                     </tbody>
                   </Table>
-                </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row className="mt-5">
+          <Col>
+            <h2>Market Beat Data</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {marketBeatData.length === 0 ? (
+                  <p className="text-muted">No Market Beat data available.</p>
+                ) : (
+                  <Table striped bordered hover responsive>
+                    <thead className="table-dark">
+                      <tr>
+                        <th>Stock</th>
+                        <th>Congregated Analyst Rating</th>
+                        <th>Prof. Earnings Growth</th>
+                        <th>Short Interest</th>
+                        <th>Dividend Strength</th>
+                        <th>News Sentiment</th>
+                        <th>Insider Trading</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {marketBeatData.map((item, index) => {
+                        const stockKey = Object.keys(item)[0]; // Extract stock ticker key (e.g., AAPL)
+                        const stockData = item[stockKey] || {}; // Extract the data for the stock or fallback to an empty object
+
+                        const renderCell = (category) => {
+                          const categoryData = stockData[category] || {};
+                          return (
+                            <>
+                              {categoryData.value || 'N/A'} <br />
+                              {`Score: ${categoryData.score || 'N/A'}`}
+                            </>
+                          );
+                        };
+
+                        return (
+                          <tr key={index}>
+                            <td>{stockKey || 'N/A'}</td>
+                            <td>{renderCell("Analyst's Opinion")}</td>
+                            <td>{renderCell('Earnings and Valuation')}</td>
+                            <td>{renderCell('Short Interest')}</td>
+                            <td>{renderCell('Dividend')}</td>
+                            <td>{renderCell('News and Social Media')}</td>
+                            <td>{renderCell('Company Ownership')}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row className="mt-5">
+          <Col>
+            <h2>Congress Trades</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {!congressTradesData || congressTradesData.length === 0 ? (
+                  <p className="text-muted">No Congress Trades data available.</p>
+                ) : (
+                  <Table striped bordered hover responsive style={{ tableLayout: 'fixed', width: '100%' }}>
+                    <thead
+                      className="table-dark"
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: '#343a40',
+                        zIndex: 10,
+                      }}
+                    >
+                      <tr>
+                        <th style={{ width: '16.6%' }}>Stock</th>
+                        <th style={{ width: '16.6%' }}>Representative</th>
+                        <th style={{ width: '16.6%' }}>Action</th>
+                        <th style={{ width: '16.6%' }}>Transaction Amount</th>
+                        <th style={{ width: '16.6%' }}>Date</th>
+                        <th style={{ width: '17%' }}>More Data</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {congressTradesData.map((tradesArray, index) => {
+                        if (!Array.isArray(tradesArray) || tradesArray.length === 0) {
+                          return (
+                            <tr key={index}>
+                              <td colSpan={6}>No data for this stock</td>
+                            </tr>
+                          );
+                        }
+
+                        const mostRecentTrade = tradesArray[0] || {};
+                        const isExpanded = expandedCongressRows.includes(index);
+
+                        return (
+                          <React.Fragment key={index}>
+                            {/* Main Row */}
+                            <tr>
+                              <td>{mostRecentTrade.ticker ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.name ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.action ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.amount ?? 'N/A'}</td>
+                              <td>{mostRecentTrade.date ?? 'N/A'}</td>
+                              <td>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleToggleCongressRow(index)}
+                                  style={{
+                                    backgroundColor: isExpanded ? '#007bff' : '#28a745',
+                                    borderColor: isExpanded ? '#007bff' : '#28a745',
+                                    color: '#fff',
+                                  }}
+                                >
+                                  {isExpanded ? 'Hide More' : 'Show More'}
+                                </Button>
+                              </td>
+                            </tr>
+
+                            {/* Expanded Row */}
+                            {isExpanded && tradesArray.length > 1 && (
+                              <tr>
+                                <td colSpan={6} style={{ padding: 0 }}>
+                                  <div
+                                    style={{
+                                      maxHeight: '200px',
+                                      overflowY: 'auto',
+                                      backgroundColor: 'inherit',
+                                      border: '1px solid #007bff', //change to #ddd to remove blue border
+                                    }}
+                                  >
+                                    <Table
+                                      size="sm"
+                                      bordered
+                                      responsive
+                                      style={{
+                                        margin: 0,
+                                        tableLayout: 'fixed',
+                                        width: '100%',
+                                      }}
+                                    >
+                                      {/* Removed <thead> */}
+                                      <tbody>
+                                        {tradesArray.slice(1).map((trade, i) => (
+                                          <tr key={`${index}-${i}`}>
+                                            <td style={{ width: '16.7%' }}>{trade.ticker ?? 'N/A'}</td>
+                                            <td style={{ width: '16.85%' }}>{trade.name ?? 'N/A'}</td>
+                                            <td style={{ width: '16.85%' }}>{trade.action ?? 'N/A'}</td>
+                                            <td style={{ width: '16.9%' }}>{trade.amount ?? 'N/A'}</td>
+                                            <td style={{ width: '32.7%' }}>{trade.date ?? 'N/A'}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </Table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row className="mt-5">
+          <Col>
+            <h2>Insider Trades</h2>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                {!insiderTradesData || insiderTradesData.length === 0 ? (
+                  <p className="text-muted">No Insider Trades data available.</p>
+                ) : (
+                  <Table
+                    striped
+                    bordered
+                    hover
+                    responsive
+                    style={{ tableLayout: 'fixed', width: '100%' }}
+                  >
+                    <thead
+                      className="table-dark"
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        backgroundColor: '#343a40',
+                        zIndex: 10,
+                      }}
+                    >
+                      <tr>
+                        <th style={{ width: '12.6%' }}>Stock</th>
+                        <th style={{ width: '16.6%' }}>Insider</th>
+                        <th style={{ width: '16.6%' }}>Action</th>
+                        <th style={{ width: '20.6%' }}>Transaction Details</th>
+                        <th style={{ width: '16.6%' }}>Date</th>
+                        <th style={{ width: '17%' }}>More Data</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {insiderTradesData.map((tradesArray, index) => {
+                        if (!tradesArray || Object.keys(tradesArray).length === 0) {
+                          return (
+                            <tr key={index}>
+                              <td colSpan={6}>No data for this stock</td>
+                            </tr>
+                          );
+                        }
+
+                        const stockSymbol = Object.keys(tradesArray)[0];
+                        const trades = tradesArray[stockSymbol];
+                        const mostRecentTrade = trades[0] || {};
+                        const isExpanded = expandedInsiderRows.includes(index);
+
+                        // Helper function to format date
+                        const formatDate = (rawDate) => {
+                          if (!rawDate) return 'N/A';
+                          try {
+                            const datePart = rawDate.split(' ')[0];
+                            const [year, month, day] = datePart.split('-');
+                            const dateObj = new Date(`${year}-${month}-${day}`);
+                            return dateObj.toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            });
+                          } catch {
+                            return rawDate;
+                          }
+                        };
+
+                        return (
+                          <React.Fragment key={index}>
+                            {/* Main Row */}
+                            <tr>
+                              <td>{stockSymbol}</td>
+                              <td>
+                                {mostRecentTrade.insiderName ?? 'N/A'}
+                                <br />
+                                {mostRecentTrade.title
+                                  ? `(${mostRecentTrade.title})`
+                                  : ''}
+                              </td>
+                              <td>
+                                {mostRecentTrade.action ?? 'N/A'}
+                                <br />
+                                {mostRecentTrade.quantity
+                                  ? `Qty: ${mostRecentTrade.quantity}`
+                                  : ''}
+                                <br />
+                                {mostRecentTrade.price
+                                  ? `Price: ${mostRecentTrade.price}`
+                                  : ''}
+                              </td>
+                              <td>
+                                {`Value: ${mostRecentTrade.value ?? 'N/A'}`}
+                                <br />
+                                {`Shares Owned: ${mostRecentTrade.sharesOwned ?? 'N/A'}`}
+                                <br />
+                                {`Delta Own: ${mostRecentTrade.deltaOwn ?? 'N/A'}`}
+                              </td>
+                              <td>
+                                {`Filed: ${formatDate(mostRecentTrade.dayFiled)}`}
+                                <br />
+                                {`Traded: ${formatDate(mostRecentTrade.dayTraded)}`}
+                                <br />
+                                {`Day Delay: ${mostRecentTrade.deltaDays ?? 'N/A'}`}
+                              </td>
+                              <td>
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleToggleInsiderRow(index)}
+                                  style={{
+                                    backgroundColor: isExpanded
+                                      ? '#007bff'
+                                      : '#28a745',
+                                    borderColor: isExpanded
+                                      ? '#007bff'
+                                      : '#28a745',
+                                    color: '#fff',
+                                  }}
+                                >
+                                  {isExpanded ? 'Hide More' : 'Show More'}
+                                </Button>
+                              </td>
+                            </tr>
+
+                            {/* Expanded Row */}
+                            {isExpanded && trades.length > 1 && (
+                              <tr>
+                                <td colSpan={6} style={{ padding: 0 }}>
+                                  <div
+                                    style={{
+                                      maxHeight: '200px',
+                                      overflowY: 'auto',
+                                      backgroundColor: 'inherit',
+                                      border: '1px solid #007bff',
+                                    }}
+                                  >
+                                    <Table
+                                      size="sm"
+                                      bordered
+                                      responsive
+                                      style={{
+                                        margin: 0,
+                                        tableLayout: 'fixed',
+                                        width: '100%',
+                                      }}
+                                    >
+                                      <tbody>
+                                        {trades.slice(1).map((trade, i) => (
+                                          <tr key={`${index}-${i}`}>
+                                            <td style={{ width: '12.8%' }}>{stockSymbol}</td>
+                                            <td style={{ width: '16.85%' }}>
+                                              {trade.insiderName ?? 'N/A'}
+                                              <br />
+                                              {trade.title ? `(${trade.title})` : ''}
+                                            </td>
+                                            <td style={{ width: '16.9%' }}>
+                                              {trade.action ?? 'N/A'}
+                                              <br />
+                                              {trade.quantity ? `Qty: ${trade.quantity}` : ''}
+                                              <br />
+                                              {trade.price ? `Price: ${trade.price}` : ''}
+                                            </td>
+                                            <td style={{ width: '20.9%' }}>
+                                              {`Value: ${trade.value ?? 'N/A'}`}
+                                              <br />
+                                              {`Shares Owned: ${trade.sharesOwned ?? 'N/A'}`}
+                                              <br />
+                                              {`Delta Own: ${trade.deltaOwn ?? 'N/A'}`}
+                                            </td>
+                                            <td style={{ width: '32.55%' }}>
+                                              {`Filed: ${formatDate(trade.dayFiled)}`}
+                                              <br />
+                                              {`Traded: ${formatDate(trade.dayTraded)}`}
+                                              <br />
+                                              {`Day Delay: ${trade.deltaDays ?? 'N/A'}`}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </Table>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
               </Card.Body>
             </Card>
           </Col>
