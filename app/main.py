@@ -10,7 +10,6 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth, firestore
 import requests
 from bs4 import BeautifulSoup
-import robin_stocks.robinhood as r
 from pydantic import BaseModel
 import time
 import pyotp
