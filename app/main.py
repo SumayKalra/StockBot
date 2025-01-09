@@ -14,8 +14,9 @@ from pydantic import BaseModel
 import time
 import pyotp
 from fastapi.background import BackgroundTasks
-from playwright.sync_api import sync_playwright #lightweight library for rendering webpages
+from playwright.sync_api import sync_playwright
 from dateutil import parser
+import robin_stocks.robinhood as r
 import scrapers
 
 

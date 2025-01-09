@@ -8,3 +8,9 @@ python-dotenv
 fastapi[all]
 robin_stocks
 playwright
+requests
+beautifulsoup4
+pydantic
+pyotp
+python-dateutil
+playwright-stealth
