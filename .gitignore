@@ -3,3 +3,4 @@ serviceAccountKey.json
 stockvenv/
 robin_stocks/
 app/serviceAccountKey.json
+app/browser-session.json

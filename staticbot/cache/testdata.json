@@ -1,0 +1,680 @@
+{
+    "stock_analysis": [
+        {
+            "%D": 72.00452889227496,
+            "%K": 46.47693815439072,
+            "Decision": "Hold",
+            "Last Updated": "2024-12-31T05:46:06.207729+00:00",
+            "Price": 252.1999969482422,
+            "Stock Name": "AAPL",
+            "Zone": "Neutral Zone: Hold Phase"
+        },
+        {
+            "%D": 69.17953052764396,
+            "%K": 70.67825550659617,
+            "Decision": "Hold",
+            "Last Updated": "2024-12-31T05:46:04.131793+00:00",
+            "Price": 137.49000549316406,
+            "Stock Name": "NVDA",
+            "Zone": "Neutral Zone: Hold Phase"
+        },
+        {
+            "%D": 48.833827997382166,
+            "%K": 27.188040633456062,
+            "Decision": "Hold",
+            "Last Updated": "2024-12-31T05:46:08.099748+00:00",
+            "Price": 417.4100036621094,
+            "Stock Name": "TSLA",
+            "Zone": "Neutral Zone: Hold Phase"
+        },
+        {
+            "Stock Name": "AMD",
+            "Price": 121.83999633789062,
+            "%K": 28.53,
+            "%D": 62.54,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "AMZN",
+            "Price": 222.1300048828125,
+            "%K": 29.83,
+            "%D": 40.13,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "CVX",
+            "Price": 150.3000030517578,
+            "%K": 91.72,
+            "%D": 77.63,
+            "Zone": "Red Zone: Overbought - Potential Sell Opportunity",
+            "Decision": "Consider Selling"
+        },
+        {
+            "Stock Name": "GME",
+            "Price": 32.959999084472656,
+            "%K": 76.35,
+            "%D": 79.20,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "GOOG",
+            "Price": 195.38999938964844,
+            "%K": 57.20,
+            "%D": 63.34,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "KO",
+            "Price": 61.709999084472656,
+            "%K": 36.09,
+            "%D": 16.02,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "L",
+            "Price": 83.52999877929688,
+            "%K": 57.14,
+            "%D": 45.13,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        },
+        {
+            "Stock Name": "GIS",
+            "Price": 60.970001220703125,
+            "%K": 23.56,
+            "%D": 8.55,
+            "Zone": "Neutral Zone: Hold Phase",
+            "Decision": "Hold"
+        }
+    ],
+    "american_bull_info": [
+        {
+            "Change%": "0.0%",
+            "Date": "12/30",
+            "Last Updated": "2024-12-31T05:46:07.845160+00:00",
+            "Price": "252.20",
+            "Signal": "SELL",
+            "Stock Name": "AAPL",
+            "Value": ""
+        },
+        {
+            "Change%": "-0.2%",
+            "Date": "12/27",
+            "Last Updated": "2024-12-31T05:46:05.833416+00:00",
+            "Price": "137.73",
+            "Signal": "SELL",
+            "Stock Name": "NVDA",
+            "Value": "-"
+        },
+        {
+            "Change%": "-4.5%",
+            "Date": "12/19",
+            "Last Updated": "2024-12-31T05:46:09.401416+00:00",
+            "Price": "437.00",
+            "Signal": "SELL",
+            "Stock Name": "TSLA",
+            "Value": "-"
+        },
+        {
+            "Stock Name": "AMD",
+            "Signal": "SELL",
+            "Date": "01/08",
+            "Price": "123.66",
+            "Change%": "-1.5%",
+            "Value": "-"
+        },
+        {
+            "Stock Name": "AMZN",
+            "Signal": "BUY",
+            "Date": "01/03",
+            "Price": "223.40",
+            "Change%": "-0.6%",
+            "Value": "❌"
+        },
+        {
+            "Stock Name": "CVX",
+            "Signal": "BUY",
+            "Date": "01/07",
+            "Price": "149.26",
+            "Change%": "+0.7%",
+            "Value": "✅"
+        },
+        {
+            "Stock Name": "GME",
+            "Signal": "BUY",
+            "Date": "01/06",
+            "Price": "32.02",
+            "Change%": "+2.9%",
+            "Value": "✅"
+        },
+        {
+            "Stock Name": "GOOG",
+            "Signal": "BUY",
+            "Date": "01/03",
+            "Price": "193.13",
+            "Change%": "+1.2%",
+            "Value": "✅"
+        },
+        {
+            "Stock Name": "KO",
+            "Signal": "BUY",
+            "Date": "01/08",
+            "Price": "61.32",
+            "Change%": "+0.6%",
+            "Value": "✅"
+        },
+        {
+            "Stock Name": "L",
+            "Signal": "BUY",
+            "Date": "01/08",
+            "Price": "83.53",
+            "Change%": "0.0%",
+            "Value": "✅"
+        },
+        {
+            "Stock Name": "GIS",
+            "Signal": "SHORT",
+            "Date": "01/07",
+            "Price": "61.46",
+            "Change%": "-0.8%",
+            "Value": "✅"
+        }
+    ],
+    "barchart_opinion_info": [
+        {
+            "company": "Nvidia Corp",
+            "date": "January 09, 2025",
+            "lastPrice": "140.11",
+            "opinion": "88% Buy",
+            "percentChange": "-0.02%",
+            "priceChange": "-0.03",
+            "ticker": "NVDA"
+        },
+        {
+            "company": "Apple Inc",
+            "date": "January 09, 2025",
+            "lastPrice": "242.70",
+            "opinion": "80% Buy",
+            "percentChange": "+0.20%",
+            "priceChange": "+0.49",
+            "ticker": "AAPL"
+        },
+        {
+            "company": "Tesla Inc",
+            "date": "January 09, 2025",
+            "lastPrice": "394.94",
+            "opinion": "80% Buy",
+            "percentChange": "+0.15%",
+            "priceChange": "+0.58",
+            "ticker": "TSLA"
+        },
+        {
+            "ticker": "AMZN",
+            "company": "Amazon.com Inc",
+            "opinion": "88% Buy",
+            "date": "January 09, 2025",
+            "lastPrice": "222.13",
+            "percentChange": "+0.01%",
+            "priceChange": "+0.02"
+        },
+        {
+            "ticker": "CVX",
+            "company": "Chevron Corp",
+            "opinion": "40% Sell",
+            "date": "January 09, 2025",
+            "lastPrice": "150.30",
+            "percentChange": "+0.47%",
+            "priceChange": "+0.70"
+        },
+        {
+            "ticker": "GME",
+            "company": "GameStop Corp",
+            "opinion": "100% Buy",
+            "date": "January 09, 2025",
+            "lastPrice": "32.96",
+            "percentChange": "-1.23%",
+            "priceChange": "-0.41"
+        },
+        {
+            "ticker": "GOOG",
+            "company": "Alphabet Inc",
+            "opinion": "100% Buy",
+            "date": "January 09, 2025",
+            "lastPrice": "195.39",
+            "percentChange": "-0.67%",
+            "priceChange": "-1.31"
+        },
+        {
+            "ticker": "L",
+            "company": "Loews Corp",
+            "opinion": "56% Buy",
+            "date": "January 09, 2025",
+            "lastPrice": "83.53",
+            "percentChange": "+0.70%",
+            "priceChange": "+0.58"
+        },
+        {
+            "ticker": "AMD",
+            "company": "Advanced Micro Devices",
+            "opinion": "100% Sell",
+            "date": "January 09, 2025",
+            "lastPrice": "121.84",
+            "percentChange": "-4.31%",
+            "priceChange": "-5.48"
+        },
+        {
+            "ticker": "KO",
+            "company": "Coca-Cola Co",
+            "opinion": "88% Sell",
+            "date": "January 09, 2025",
+            "lastPrice": "61.71",
+            "percentChange": "+1.43%",
+            "priceChange": "+0.87"
+        },
+        {
+            "ticker": "GIS",
+            "company": "General Mills Inc",
+            "opinion": "88% Sell",
+            "date": "January 09, 2025",
+            "lastPrice": "60.97",
+            "percentChange": "+0.13%",
+            "priceChange": "+0.08"
+        }
+    ],
+    "market_beat_info": [
+        {
+            "NVDA": {
+                "Analyst's Opinion": {
+                    "score": "3.5 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "1.7 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Weak"
+                },
+                "Earnings and Valuation": {
+                    "score": "3.1 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "40.29%"
+                },
+                "News and Social Media": {
+                    "score": "3.3 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.90"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                },
+                "Sustainability and ESG": {
+                    "score": "3.0 / 5",
+                    "label": "Environmental Score",
+                    "value": "-1.26"
+                }
+            }
+        },
+        {
+            "AAPL": {
+                "Analyst's Opinion": {
+                    "score": "2.3 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "3.3 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Strong"
+                },
+                "Earnings and Valuation": {
+                    "score": "2.5 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "13.06%"
+                },
+                "News and Social Media": {
+                    "score": "3.1 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.64"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                },
+                "Sustainability and ESG": {
+                    "score": "2.8 / 5",
+                    "label": "Environmental Score",
+                    "value": "-1.97"
+                }
+            }
+        },
+        {
+            "TSLA": {
+                "Analyst's Opinion": {
+                    "score": "2.1 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Hold"
+                },
+                "Company Ownership": {
+                    "score": "4.2 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "0.0 / 5",
+                    "label": "Dividend Strength",
+                    "value": "N/A"
+                },
+                "Earnings and Valuation": {
+                    "score": "2.5 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "44.22%"
+                },
+                "News and Social Media": {
+                    "score": "2.9 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.15"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                },
+                "Sustainability and ESG": {
+                    "score": "3.5 / 5",
+                    "label": "Environmental Score",
+                    "value": "-0.51"
+                }
+            }
+        },
+        {
+            "AMZN": {
+                "Analyst's Opinion": {
+                    "score": "2.5 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "3.3 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "1.7 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Weak"
+                },
+                "Earnings and Valuation": {
+                    "score": "3.1 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "17.58%"
+                },
+                "News and Social Media": {
+                    "score": "3.5 / 5",
+                    "label": "News Sentiment",
+                    "value": "1.22"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "CVX": {
+                "Analyst's Opinion": {
+                    "score": "3.4 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "5.0 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Strong"
+                },
+                "Earnings and Valuation": {
+                    "score": "1.9 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "13.14%"
+                },
+                "News and Social Media": {
+                    "score": "3.2 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.74"
+                },
+                "Short Interest": {
+                    "score": "2.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Bearish"
+                }
+            }
+        },
+        {
+            "GME": {
+                "Analyst's Opinion": {
+                    "score": "0.5 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Sell"
+                },
+                "Company Ownership": {
+                    "score": "1.7 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "0.0 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Weak"
+                },
+                "Earnings and Valuation": {
+                    "score": "1.9 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "125.00%"
+                },
+                "News and Social Media": {
+                    "score": "1.9 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.49"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "GOOG": {
+                "Analyst's Opinion": {
+                    "score": "3.0 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "0.0 / 5",
+                    "label": "Dividend Strength",
+                    "value": "N/A"
+                },
+                "Earnings and Valuation": {
+                    "score": "2.5 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "N/A"
+                },
+                "News and Social Media": {
+                    "score": "3.1 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.64"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "L": {
+                "Analyst's Opinion": {
+                    "score": "3.5 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "0.8 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Weak"
+                },
+                "Earnings and Valuation": {
+                    "score": "1.3 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "N/A"
+                },
+                "News and Social Media": {
+                    "score": "2.4 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.31"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "AMD": {
+                "Analyst's Opinion": {
+                    "score": "4.4 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Moderate Buy"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "0.0 / 5",
+                    "label": "Dividend Strength",
+                    "value": "N/A"
+                },
+                "Earnings and Valuation": {
+                    "score": "3.1 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "63.78%"
+                },
+                "News and Social Media": {
+                    "score": "3.1 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.58"
+                },
+                "Short Interest": {
+                    "score": "3.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "KO": {
+                "Analyst's Opinion": {
+                    "score": "3.4 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Hold"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "3.3 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Strong"
+                },
+                "Earnings and Valuation": {
+                    "score": "1.9 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "16.02%"
+                },
+                "News and Social Media": {
+                    "score": "3.0 / 5",
+                    "label": "News Sentiment",
+                    "value": "0.64"
+                },
+                "Short Interest": {
+                    "score": "2.8 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Healthy"
+                }
+            }
+        },
+        {
+            "GIS": {
+                "Analyst's Opinion": {
+                    "score": "3.1 / 5",
+                    "label": "Analyst Rating",
+                    "value": "Hold"
+                },
+                "Company Ownership": {
+                    "score": "2.5 / 5",
+                    "label": "Insider Trading",
+                    "value": "Selling Shares"
+                },
+                "Dividend": {
+                    "score": "3.3 / 5",
+                    "label": "Dividend Strength",
+                    "value": "Strong"
+                },
+                "Earnings and Valuation": {
+                    "score": "1.9 / 5",
+                    "label": "Proj. Earnings Growth",
+                    "value": "3.33%"
+                },
+                "News and Social Media": {
+                    "score": "1.6 / 5",
+                    "label": "News Sentiment",
+                    "value": "-0.07"
+                },
+                "Short Interest": {
+                    "score": "2.0 / 5",
+                    "label": "Short Interest Level",
+                    "value": "Bearish"
+                }
+            }
+        }
+    ]
+    }
